@@ -18,8 +18,8 @@ públicas SSG, autenticação do Mestre, área de gestão, servidor MCP). O que 
 
 ### MCP — melhorias
 
-- [ ] Melhorar os esquemas de **saída** dos serviços MCP (definir `outputSchema`/`structuredContent` das tools, em vez de só texto JSON)
-- [ ] Permitir criar **aventureiros** e **fios soltos** via MCP (novas tools `createAdventurer` / `createLooseEnd`, escrita com `MCP_SERVICE_TOKEN`)
+- [x] Melhorar os esquemas de **saída** dos serviços MCP (definir `outputSchema`/`structuredContent` das tools, em vez de só texto JSON)
+- [x] Permitir criar **aventureiros** e **fios soltos** via MCP (novas tools `createAdventurer` / `createLooseEnd`, escrita com `MCP_SERVICE_TOKEN`)
 
 ---
 

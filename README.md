@@ -82,7 +82,8 @@ MCP_SERVICE_TOKEN=   # token das escritas via MCP (Fase 6)
 
 Endpoint: `POST /api/mcp` (JSON-RPC 2.0 / Streamable HTTP).
 
-Tools expostas:
+Tools expostas (todas declaram `outputSchema` e devolvem `structuredContent`
+além do `content` textual):
 
 | Tool | Tipo | Token? |
 |---|---|---|
@@ -90,6 +91,8 @@ Tools expostas:
 | `listSessions(adventureId)` | leitura | não |
 | `createSession(adventureId, …)` | escrita | sim |
 | `updateSession(sessionId, …)` | escrita (patch parcial) | sim |
+| `createAdventurer(adventureId, name, className, …)` | escrita | sim |
+| `createLooseEnd(adventureId, title, …)` | escrita | sim |
 
 O token (`MCP_SERVICE_TOKEN`) das escritas pode ser enviado de três formas:
 

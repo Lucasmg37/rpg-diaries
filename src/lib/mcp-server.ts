@@ -1,10 +1,17 @@
 import { getMasterGuildId } from "@/adapters/config/master-config";
 import { getRepositories } from "@/adapters/config/repository-factory";
 import type { Session } from "@/core/entities/session";
+import { createAdventurer } from "@/core/usecases/create-adventurer";
+import { createLooseEnd } from "@/core/usecases/create-loose-end";
 import { createSession } from "@/core/usecases/create-session";
 import { getFullGuild } from "@/core/usecases/get-full-guild";
 import { updateSession } from "@/core/usecases/update-session";
-import { buildSessionInput, buildSessionPatch } from "@/lib/admin-serializers";
+import {
+  buildAdventurerInput,
+  buildLooseEndInput,
+  buildSessionInput,
+  buildSessionPatch,
+} from "@/lib/admin-serializers";
 import { isMcpWriteAuthorized } from "@/lib/mcp-auth";
 
 /**
@@ -34,9 +41,223 @@ interface ToolDef {
   name: string;
   description: string;
   inputSchema: Record<string, any>;
+  /**
+   * JSON Schema do resultado. Quando presente, `tools/call` devolve também
+   * `structuredContent` (objeto) além do `content` textual, para clientes que
+   * consomem dados estruturados.
+   */
+  outputSchema?: Record<string, any>;
   requiresAuth: boolean;
   run: (args: Record<string, any>) => Promise<unknown>;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Fragmentos de JSON Schema reaproveitados nos outputSchema das tools.       */
+/* -------------------------------------------------------------------------- */
+
+const participantStateSchema = {
+  type: "string",
+  enum: ["normal", "suspicious", "fallen", "new"],
+};
+
+const timelineEntrySchema = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    body: { type: "string" },
+    icon: { type: "string" },
+    callout: { type: "string" },
+  },
+  required: ["title", "body", "icon"],
+};
+
+const tagSchema = {
+  type: "object",
+  properties: {
+    label: { type: "string" },
+    color: { type: "string" },
+    icon: { type: "string" },
+  },
+  required: ["label", "color"],
+};
+
+const closingSchema = {
+  type: "object",
+  properties: {
+    quote: { type: "string" },
+    tagline: { type: "string" },
+  },
+  required: ["quote", "tagline"],
+};
+
+const adventurerSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    guildId: { type: "string" },
+    adventureId: { type: "string" },
+    name: { type: "string" },
+    className: { type: "string" },
+    icon: { type: "string" },
+    level: { type: "number" },
+    background: { type: "string" },
+    status: { type: "string" },
+    sheetUrl: { type: "string" },
+  },
+  required: [
+    "id",
+    "guildId",
+    "adventureId",
+    "name",
+    "className",
+    "icon",
+    "level",
+    "background",
+    "status",
+    "sheetUrl",
+  ],
+};
+
+const looseEndSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    guildId: { type: "string" },
+    adventureId: { type: "string" },
+    title: { type: "string" },
+    category: { type: "string" },
+    description: { type: "string" },
+    color: { type: "string" },
+    icon: { type: "string" },
+    resolved: { type: "boolean" },
+  },
+  required: [
+    "id",
+    "guildId",
+    "adventureId",
+    "title",
+    "category",
+    "description",
+    "color",
+    "icon",
+    "resolved",
+  ],
+};
+
+/** Participante embutido (cru) numa Session — referencia o aventureiro por ID. */
+const participantSchema = {
+  type: "object",
+  properties: {
+    adventurerId: { type: "string" },
+    sessionBadge: { type: "string" },
+    sessionState: participantStateSchema,
+    sessionNote: { type: "string" },
+  },
+  required: ["adventurerId", "sessionBadge"],
+};
+
+/** Participante resolvido (aventureiro completo + campos da sessão). */
+const resolvedParticipantSchema = {
+  type: "object",
+  properties: {
+    adventurer: adventurerSchema,
+    sessionBadge: { type: "string" },
+    sessionState: participantStateSchema,
+    sessionNote: { type: "string" },
+  },
+  required: ["adventurer", "sessionBadge"],
+};
+
+/** Session crua, como devolvida por createSession/updateSession (sem masterNotes). */
+const sessionSchema = {
+  type: "object",
+  description: "Sessão sem as notas privadas do mestre.",
+  properties: {
+    id: { type: "string" },
+    guildId: { type: "string" },
+    adventureId: { type: "string" },
+    title: { type: "string" },
+    number: { type: "number" },
+    icon: { type: "string" },
+    summary: { type: "string" },
+    timeline: { type: "array", items: timelineEntrySchema },
+    tags: { type: "array", items: tagSchema },
+    participants: { type: "array", items: participantSchema },
+    looseEndIds: { type: "array", items: { type: "string" } },
+    closing: closingSchema,
+    createdAt: { type: "string", format: "date-time" },
+    updatedAt: { type: "string", format: "date-time" },
+  },
+  required: ["id", "guildId", "adventureId", "title", "number"],
+};
+
+/** Session resolvida (participantes e fios soltos já populados). */
+const fullSessionSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    guildId: { type: "string" },
+    adventureId: { type: "string" },
+    title: { type: "string" },
+    number: { type: "number" },
+    icon: { type: "string" },
+    summary: { type: "string" },
+    timeline: { type: "array", items: timelineEntrySchema },
+    tags: { type: "array", items: tagSchema },
+    participants: { type: "array", items: resolvedParticipantSchema },
+    looseEnds: { type: "array", items: looseEndSchema },
+    closing: closingSchema,
+    createdAt: { type: "string", format: "date-time" },
+    updatedAt: { type: "string", format: "date-time" },
+  },
+  required: ["id", "guildId", "adventureId", "title", "number"],
+};
+
+const guildSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    slug: { type: "string" },
+    description: { type: "string" },
+    masterId: { type: "string" },
+    createdAt: { type: "string", format: "date-time" },
+  },
+};
+
+const adventureSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    guildId: { type: "string" },
+    name: { type: "string" },
+    slug: { type: "string" },
+    description: { type: "string" },
+    order: { type: "number" },
+    createdAt: { type: "string", format: "date-time" },
+  },
+};
+
+const fullAdventureSchema = {
+  type: "object",
+  properties: {
+    adventure: adventureSchema,
+    sessions: { type: "array", items: fullSessionSchema },
+    adventurers: { type: "array", items: adventurerSchema },
+    looseEnds: { type: "array", items: looseEndSchema },
+  },
+  required: ["adventure", "sessions", "adventurers", "looseEnds"],
+};
+
+/** Guild completa resolvida — saída de getGuildData. */
+const fullGuildSchema = {
+  type: "object",
+  properties: {
+    guild: guildSchema,
+    adventures: { type: "array", items: fullAdventureSchema },
+  },
+  required: ["guild", "adventures"],
+};
 
 const TOOLS: ToolDef[] = [
   {
@@ -52,6 +273,7 @@ const TOOLS: ToolDef[] = [
         },
       },
     },
+    outputSchema: fullGuildSchema,
     requiresAuth: false,
     run: async (args) => {
       const guildId = args.guildId ? String(args.guildId) : getMasterGuildId();
@@ -71,6 +293,13 @@ const TOOLS: ToolDef[] = [
       },
       required: ["adventureId"],
     },
+    outputSchema: {
+      type: "object",
+      properties: {
+        sessions: { type: "array", items: fullSessionSchema },
+      },
+      required: ["sessions"],
+    },
     requiresAuth: false,
     run: async (args) => {
       const adventureId = String(args.adventureId);
@@ -79,7 +308,7 @@ const TOOLS: ToolDef[] = [
         (a) => a.adventure.id === adventureId,
       );
       if (!adventure) throw new Error(`Aventura "${adventureId}" não encontrada.`);
-      return adventure.sessions;
+      return { sessions: adventure.sessions };
     },
   },
   {
@@ -117,6 +346,7 @@ const TOOLS: ToolDef[] = [
       },
       required: ["adventureId", "title", "number"],
     },
+    outputSchema: sessionSchema,
     requiresAuth: true,
     run: async (args) => {
       const input = buildSessionInput(args, getMasterGuildId());
@@ -148,6 +378,7 @@ const TOOLS: ToolDef[] = [
       },
       required: ["sessionId"],
     },
+    outputSchema: sessionSchema,
     requiresAuth: true,
     run: async (args) => {
       const sessionId = String(args.sessionId);
@@ -173,6 +404,70 @@ const TOOLS: ToolDef[] = [
         patch,
       );
       return stripMasterNotes(updated);
+    },
+  },
+  {
+    name: "createAdventurer",
+    description:
+      "Cria um aventureiro numa aventura. Cadastrado uma vez e depois referenciado (com badge próprio) em cada sessão. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        name: { type: "string" },
+        className: {
+          type: "string",
+          description: 'Classe do personagem (ex.: "Guerreiro").',
+        },
+        icon: { type: "string", description: "Emoji/ícone do aventureiro." },
+        level: { type: "number" },
+        background: { type: "string" },
+        status: {
+          type: "string",
+          description: 'Status permanente (ex.: "Ativo", "Morto"). Padrão "Ativo".',
+        },
+        sheetUrl: {
+          type: "string",
+          description: "Link externo para a ficha completa.",
+        },
+      },
+      required: ["adventureId", "name", "className"],
+    },
+    outputSchema: adventurerSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const input = buildAdventurerInput(args, getMasterGuildId());
+      return createAdventurer(getRepositories(), input);
+    },
+  },
+  {
+    name: "createLooseEnd",
+    description:
+      "Cria um fio solto / gancho narrativo numa aventura. Sessões depois o referenciam via looseEndIds. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        title: { type: "string" },
+        category: { type: "string" },
+        description: { type: "string" },
+        color: {
+          type: "string",
+          description: 'Cor hex do fio (padrão "#a07a40").',
+        },
+        icon: { type: "string", description: "Emoji/ícone do fio solto." },
+        resolved: {
+          type: "boolean",
+          description: "Se o fio já foi resolvido. Padrão false.",
+        },
+      },
+      required: ["adventureId", "title"],
+    },
+    outputSchema: looseEndSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const input = buildLooseEndInput(args, getMasterGuildId());
+      return createLooseEnd(getRepositories(), input);
     },
   },
 ];
@@ -222,6 +517,7 @@ async function handleMessage(
           name: t.name,
           description: t.description,
           inputSchema: t.inputSchema,
+          ...(t.outputSchema ? { outputSchema: t.outputSchema } : {}),
         })),
       });
 
@@ -245,9 +541,16 @@ async function handleMessage(
       }
       try {
         const out = await tool.run(args);
-        return rpcResult(id, {
+        // Serializa via JSON.parse(JSON.stringify(...)) para normalizar Dates
+        // em strings ISO — mesmo formato do `content` textual — e garantir que
+        // `structuredContent` seja JSON puro conforme o outputSchema.
+        const result: Record<string, any> = {
           content: [{ type: "text", text: JSON.stringify(out, null, 2) }],
-        });
+        };
+        if (tool.outputSchema) {
+          result.structuredContent = JSON.parse(JSON.stringify(out));
+        }
+        return rpcResult(id, result);
       } catch (e) {
         return rpcResult(id, {
           content: [{ type: "text", text: `Erro: ${(e as Error).message}` }],
