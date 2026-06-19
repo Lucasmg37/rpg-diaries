@@ -94,4 +94,15 @@ export class FirestoreStoryPlanRepository implements StoryPlanRepository {
     );
     return { ...plan, liveNotes, updatedAt };
   }
+
+  async delete(
+    guildId: string,
+    adventureId: string,
+    id: string,
+  ): Promise<void> {
+    const ref = storyPlansCol(this.db, guildId, adventureId).doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) throw new NotFoundError(`Roteiro "${id}" não encontrado.`);
+    await ref.delete();
+  }
 }

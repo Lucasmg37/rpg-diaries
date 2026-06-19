@@ -126,6 +126,16 @@ class InMemorySessionRepository implements SessionRepository {
     this.store.sessions.set(id, updated);
     return updated;
   }
+
+  async delete(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+  ): Promise<void> {
+    if (!this.store.sessions.delete(id)) {
+      throw new NotFoundError(`Sessão "${id}" não encontrada.`);
+    }
+  }
 }
 
 class InMemoryAdventurerRepository implements AdventurerRepository {
@@ -259,6 +269,16 @@ class InMemoryStoryPlanRepository implements StoryPlanRepository {
     };
     this.store.storyPlans.set(id, updated);
     return updated;
+  }
+
+  async delete(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+  ): Promise<void> {
+    if (!this.store.storyPlans.delete(id)) {
+      throw new NotFoundError(`Roteiro "${id}" não encontrado.`);
+    }
   }
 }
 

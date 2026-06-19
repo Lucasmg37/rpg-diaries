@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/Select";
 import { Stat } from "@/components/ui/Stat";
 import { TextArea } from "@/components/ui/TextArea";
 import { accent, colors, fonts } from "@/components/ui/tokens";
+import { ConfirmDialogDemo } from "./ConfirmDialogDemo";
 
 export const dynamic = "force-static";
 
@@ -216,11 +217,24 @@ export default function DesignSystemPage() {
             <Button type="button" variant="ghost">
               Ação sutil
             </Button>
+            <Button type="button" variant="danger">
+              Excluir
+            </Button>
           </div>
 
           <Eyebrow>Alert</Eyebrow>
           <Alert tone="error">Senha incorreta.</Alert>
           <Alert tone="info">Exibindo dados de exemplo (in-memory).</Alert>
+        </Panel>
+
+        <Panel className="space-y-3 p-6">
+          <Eyebrow>ConfirmDialog</Eyebrow>
+          <p className="text-xs text-guild-muted">
+            Modal de confirmação para ações destrutivas (exclusão de roteiros,
+            sessões etc.) — exige digitar o nome exato da entidade antes de
+            habilitar o botão de exclusão.
+          </p>
+          <ConfirmDialogDemo />
         </Panel>
       </section>
 

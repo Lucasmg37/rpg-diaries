@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
+  ConfirmDialog,
   Eyebrow,
   Field,
   Panel,
@@ -15,7 +16,7 @@ import {
 import type { LooseEnd } from "@/core/entities/loose-end";
 import type { ParticipantState } from "@/core/entities/session-participant";
 import type { FullGuild, FullSession } from "@/core/entities/views";
-import { getAdminGuild, sendJson } from "@/lib/admin-client";
+import { deleteSession, getAdminGuild, sendJson } from "@/lib/admin-client";
 
 const EMPTY_LOOSE_END = {
   title: "",
@@ -46,6 +47,8 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
   const [guild, setGuild] = useState<FullGuild | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Campos escalares
   const [adventureId, setAdventureId] = useState("");
@@ -248,6 +251,20 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
     } catch (err) {
       setError((err as Error).message);
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!sessionId) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteSession(adventureId, sessionId);
+      router.push("/admin/management/sessions");
+      router.refresh();
+    } catch (err) {
+      setError((err as Error).message);
+      setDeleting(false);
     }
   }
 
@@ -604,7 +621,27 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
         >
           Cancelar
         </Button>
+        {isEdit ? (
+          <Button
+            type="button"
+            variant="danger"
+            className="ml-auto"
+            onClick={() => setConfirmingDelete(true)}
+          >
+            Excluir sessão
+          </Button>
+        ) : null}
       </div>
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        title="Excluir sessão"
+        description={`Esta ação é irreversível e removerá permanentemente a sessão "${title}".`}
+        confirmText={`Sessão ${number}`}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmingDelete(false)}
+      />
     </form>
   );
 }

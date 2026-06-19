@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
+  ConfirmDialog,
   Eyebrow,
   Field,
   Panel,
@@ -19,7 +20,12 @@ import type {
   StoryPlan,
 } from "@/core/entities/story-plan";
 import type { FullGuild } from "@/core/entities/views";
-import { getAdminGuild, listStoryPlans, sendJson } from "@/lib/admin-client";
+import {
+  deleteStoryPlan,
+  getAdminGuild,
+  listStoryPlans,
+  sendJson,
+} from "@/lib/admin-client";
 
 const BLOCK_LABELS: Record<SceneBlock["type"], string> = {
   clue: "Pista",
@@ -101,6 +107,8 @@ export function StoryPlanManager({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [appliedEditId, setAppliedEditId] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<StoryPlan | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     getAdminGuild()
@@ -143,6 +151,22 @@ export function StoryPlanManager({
   function reset() {
     setEditingId(null);
     setForm({ ...EMPTY_FORM });
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteStoryPlan(adventureId, deleteTarget.id);
+      if (editingId === deleteTarget.id) reset();
+      setDeleteTarget(null);
+      await loadPlans(adventureId);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function addScene() {
@@ -298,6 +322,14 @@ export function StoryPlanManager({
               </Link>
               <Button type="button" variant="ghost" onClick={() => startEdit(p)}>
                 Editar
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="!text-red-400 hover:!text-red-300"
+                onClick={() => setDeleteTarget(p)}
+              >
+                Excluir
               </Button>
             </div>
           </div>
@@ -625,6 +657,16 @@ export function StoryPlanManager({
           ) : null}
         </div>
       </form>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Excluir roteiro"
+        description={`Esta ação é irreversível e removerá permanentemente o roteiro "${deleteTarget?.title}", incluindo todas as suas cenas e notas ao vivo.`}
+        confirmText={deleteTarget?.title ?? ""}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

@@ -24,12 +24,12 @@ src/
     (público)         # páginas SSG: /, /adventures/[slug], /sessions/[id]
     admin/            # área de gestão (client-gated por sessão) — dashboard, login, management/*
     story-plans/[id]  # visualizador do roteiro do mestre — sigiloso, gated no servidor (cookie + JWT)
-    api/admin/        # rotas de gestão (sessions, adventurers, loose-ends, story-plans, publish)
+    api/admin/        # rotas de gestão (sessions, adventurers, loose-ends, story-plans, publish) — sessions e story-plans com DELETE
     api/mcp/          # servidor MCP (JSON-RPC 2.0)
   components/
     public/           # TagBadge, PartyCard, TimelineEntryItem, AdventurerCard, LooseEndCard
     admin/            # SessionForm, AdventurerManager, LooseEndManager, StoryPlanManager/Document/Viewer, LiveNotesPanel
-    ui/               # design system (Panel, Callout, Pill, Eyebrow, Stat, Field, ...) — ver /design-system
+    ui/               # design system (Panel, Callout, Pill, Eyebrow, Stat, Field, ConfirmDialog, ...) — ver /design-system
   lib/             # sample-data, guild-data (loader cacheado), jwt, auth-middleware, admin-client/serializers
 scripts/
   demo-phase1.ts   # demonstração do domínio em memória
@@ -141,3 +141,11 @@ Nunca aparece nas páginas públicas nem no `getGuildData` do MCP.
   cenas/notas e os atalhos "Ver" e "Editar".
 - **MCP**: roteiros do mestre não são expostos via MCP (somente leitura
   pública/administrativa pela própria área de gestão).
+- **Exclusão**: tanto roteiros quanto sessões podem ser excluídos pela área de
+  gestão (`StoryPlanManager`, listagem de sessões e `SessionForm` em modo
+  edição). A confirmação usa o componente `ConfirmDialog` (ver
+  `/design-system`), que exige digitar o nome/identificador exato da entidade
+  antes de habilitar o botão — proteção contra cliques acidentais em uma
+  exclusão irreversível (hard delete, sem soft-delete/trash). Endpoints:
+  `DELETE /api/admin/story-plans/[id]?adventureId=` e
+  `DELETE /api/admin/sessions/[id]?adventureId=`.

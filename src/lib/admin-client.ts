@@ -51,3 +51,33 @@ export async function sendJson<T = unknown>(
   }
   return res.json();
 }
+
+/** Exclui um roteiro do mestre (requer adventureId). */
+export async function deleteStoryPlan(
+  adventureId: string,
+  id: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/admin/story-plans/${id}?adventureId=${encodeURIComponent(adventureId)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `Erro ${res.status}.`);
+  }
+}
+
+/** Exclui uma sessão (requer adventureId). */
+export async function deleteSession(
+  adventureId: string,
+  id: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/admin/sessions/${id}?adventureId=${encodeURIComponent(adventureId)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `Erro ${res.status}.`);
+  }
+}

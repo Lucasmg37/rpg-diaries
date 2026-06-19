@@ -5,19 +5,41 @@ import { useEffect, useState } from "react";
 
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import type { FullGuild } from "@/core/entities/views";
-import { getAdminGuild } from "@/lib/admin-client";
+import type { FullGuild, FullSession } from "@/core/entities/views";
+import { deleteSession, getAdminGuild } from "@/lib/admin-client";
 
 export default function SessionsListPage() {
   const [guild, setGuild] = useState<FullGuild | null>(null);
   const [error, setError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<FullSession | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    getAdminGuild()
+  function loadGuild() {
+    return getAdminGuild()
       .then(setGuild)
       .catch((e) => setError((e as Error).message));
+  }
+
+  useEffect(() => {
+    loadGuild();
   }, []);
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteSession(deleteTarget.adventureId, deleteTarget.id);
+      setDeleteTarget(null);
+      await loadGuild();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   if (error) return <Alert tone="error">{error}</Alert>;
   if (!guild)
@@ -42,10 +64,13 @@ export default function SessionsListPage() {
           ) : (
             <ul className="space-y-2">
               {a.sessions.map((s) => (
-                <li key={s.id}>
+                <li
+                  key={s.id}
+                  className="panel flex items-center gap-3 p-4"
+                >
                   <Link
                     href={`/admin/management/sessions/${s.id}`}
-                    className="panel flex items-center gap-3 p-4 transition-colors hover:border-guild-goldsoft"
+                    className="flex flex-1 items-center gap-3 transition-colors hover:text-guild-goldsoft"
                   >
                     <span className="text-xl" aria-hidden>
                       {s.icon}
@@ -57,12 +82,30 @@ export default function SessionsListPage() {
                       editar →
                     </span>
                   </Link>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="!text-red-400 hover:!text-red-300"
+                    onClick={() => setDeleteTarget(s)}
+                  >
+                    Excluir
+                  </Button>
                 </li>
               ))}
             </ul>
           )}
         </div>
       ))}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Excluir sessão"
+        description={`Esta ação é irreversível e removerá permanentemente a sessão "${deleteTarget?.title}".`}
+        confirmText={deleteTarget ? `Sessão ${deleteTarget.number}` : ""}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

@@ -12,3 +12,4 @@ export * from "./Field";
 export * from "./Alert";
 export * from "./TextArea";
 export * from "./Select";
+export * from "./ConfirmDialog";

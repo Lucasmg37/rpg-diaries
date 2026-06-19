@@ -9,6 +9,23 @@ export const metadata: Metadata = {
     "Relatórios, análises e registros das jornadas dos aventureiros.",
 };
 
+const FOOTER_MESSAGES = [
+  "🎲 Que seus dados rolem sempre 20.",
+  "🗡️ Nenhuma masmorra é páreo para um grupo bem organizado.",
+  "🛡️ A sorte favorece os preparados — e os bem armados.",
+  "🐉 Em algum lugar, um dragão está contando seu tesouro.",
+  "📜 Toda lenda começa com uma taverna e um aviso de procurado.",
+  "🔥 Cuidado: armadilhas adiante (provavelmente).",
+  "🧙 O mestre sabe de mais coisas do que está contando.",
+  "⚰️ Personagens morrem. Lendas, não.",
+  "🍺 A melhor estratégia ainda é comprar uma rodada para o grupo.",
+  "🕯️ Nem toda escuridão esconde um monstro — mas é melhor checar.",
+];
+
+function randomFooterMessage(): string {
+  return FOOTER_MESSAGES[Math.floor(Math.random() * FOOTER_MESSAGES.length)];
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -34,7 +51,7 @@ export default function RootLayout({
         <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
           <main>{children}</main>
           <footer className="mt-12 border-t border-guild-border pt-6 text-center text-sm italic text-guild-muted">
-            Crônicas registradas pela guilda · geradas estaticamente
+            {randomFooterMessage()}
             <span className="mx-2 not-italic">·</span>
             <Link
               href="/design-system"

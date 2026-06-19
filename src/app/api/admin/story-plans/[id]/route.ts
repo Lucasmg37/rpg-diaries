@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getMasterGuildId } from "@/adapters/config/master-config";
 import { getRepositories } from "@/adapters/config/repository-factory";
+import { deleteStoryPlan } from "@/core/usecases/delete-story-plan";
 import { getStoryPlan } from "@/core/usecases/get-story-plans";
 import { updateStoryPlan } from "@/core/usecases/update-story-plan";
 import { getMasterSession, unauthorized } from "@/lib/auth-middleware";
@@ -75,6 +76,30 @@ export async function PATCH(
       patch,
     );
     return NextResponse.json(updated);
+  } catch (e) {
+    return apiError(e);
+  }
+}
+
+/** DELETE /api/admin/story-plans/[id]?adventureId= — exclui um roteiro. */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  if (!(await getMasterSession(req))) return unauthorized();
+
+  const { id } = await params;
+  const adventureId = req.nextUrl.searchParams.get("adventureId");
+  if (!adventureId) {
+    return NextResponse.json(
+      { error: "Parâmetro adventureId é obrigatório." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    await deleteStoryPlan(getRepositories(), getMasterGuildId(), adventureId, id);
+    return new NextResponse(null, { status: 204 });
   } catch (e) {
     return apiError(e);
   }

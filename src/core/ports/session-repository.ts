@@ -18,4 +18,5 @@ export interface SessionRepository {
     id: string,
     patch: UpdateSessionInput,
   ): Promise<Session>;
+  delete(guildId: string, adventureId: string, id: string): Promise<void>;
 }

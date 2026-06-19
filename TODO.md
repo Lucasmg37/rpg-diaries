@@ -15,7 +15,8 @@ mestre com notas ao vivo). O que falta:
 
 ## Lacunas da gestão
 
-- [ ] **Delete** de sessão / aventureiro / fio solto / roteiro do mestre (com guarda de integridade referencial — são referenciados entre si)
+- [x] **Delete** de sessão / roteiro do mestre (confirmação por digitação do nome; hard delete, sem guarda de integridade referencial ainda)
+- [ ] **Delete** de aventureiro / fio solto (mesmo padrão; falta guarda de integridade referencial — são referenciados entre si, ex.: sessão → aventureiro/fio solto)
 - [ ] CRUD de **aventuras** (hoje só via seed; não há `create-adventure`)
 - [ ] Reordenação de sessões/aventuras/roteiros (campo `order`/`number` editável por arraste)
 - [ ] (Opcional) Criação inline de **aventureiro** dentro do `SessionForm` (como já existe para fios soltos)

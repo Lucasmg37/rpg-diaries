@@ -56,4 +56,15 @@ export class FirestoreSessionRepository implements SessionRepository {
     );
     return { ...mapSession(snap as never), ...patch, updatedAt };
   }
+
+  async delete(
+    guildId: string,
+    adventureId: string,
+    id: string,
+  ): Promise<void> {
+    const ref = sessionsCol(this.db, guildId, adventureId).doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) throw new NotFoundError(`Sessão "${id}" não encontrada.`);
+    await ref.delete();
+  }
 }

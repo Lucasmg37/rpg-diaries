@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getMasterGuildId } from "@/adapters/config/master-config";
 import { getRepositories } from "@/adapters/config/repository-factory";
 import type { UpdateSessionInput } from "@/core/entities/session";
+import { deleteSession } from "@/core/usecases/delete-session";
 import { updateSession } from "@/core/usecases/update-session";
 import { getMasterSession, unauthorized } from "@/lib/auth-middleware";
 import { apiError } from "@/lib/api-response";
@@ -41,6 +42,30 @@ export async function PATCH(
       patch as UpdateSessionInput,
     );
     return NextResponse.json(updated);
+  } catch (e) {
+    return apiError(e);
+  }
+}
+
+/** DELETE /api/admin/sessions/[id]?adventureId= — exclui uma sessão. */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  if (!(await getMasterSession(req))) return unauthorized();
+
+  const { id } = await params;
+  const adventureId = req.nextUrl.searchParams.get("adventureId");
+  if (!adventureId) {
+    return NextResponse.json(
+      { error: "Parâmetro adventureId é obrigatório." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    await deleteSession(getRepositories(), getMasterGuildId(), adventureId, id);
+    return new NextResponse(null, { status: 204 });
   } catch (e) {
     return apiError(e);
   }

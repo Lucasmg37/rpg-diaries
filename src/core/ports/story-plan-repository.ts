@@ -26,4 +26,5 @@ export interface StoryPlanRepository {
     id: string,
     note: CreateStoryNoteInput,
   ): Promise<StoryPlan>;
+  delete(guildId: string, adventureId: string, id: string): Promise<void>;
 }
