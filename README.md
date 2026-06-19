@@ -53,6 +53,7 @@ Sem `.env.local` preenchido, o app usa os dados de exemplo in-memory.
 |---|---|
 | `npm run demo:phase1` | Roda o domínio em memória e valida os badges contextuais por sessão (Fase 1) |
 | `npm run seed` | Popula o Firestore com os dados de exemplo (requer credenciais) (Fase 2) |
+| `npm run verify:firestore` | Lê a guild via Firestore real e valida o round-trip (Fase 2) |
 | `npm run dev` | Servidor de desenvolvimento |
 | `npm run build` | Gera as páginas estáticas (Fase 3) |
 | `npm run typecheck` | Checagem de tipos |
@@ -66,4 +67,45 @@ FIREBASE_PROJECT_ID=
 FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=    # uma linha, com \n literais
 MASTER_GUILD_ID=guild-aurora
+```
+
+Para as fases seguintes:
+
+```bash
+MASTER_PASSWORD=     # senha de login do Mestre (Fase 4)
+JWT_SECRET=          # segredo do JWT — openssl rand -hex 32 (Fase 4)
+DEPLOY_HOOK_URL=     # Vercel Deploy Hook, usado pelo botão Publicar (Fase 5)
+MCP_SERVICE_TOKEN=   # token das escritas via MCP (Fase 6)
+```
+
+## Servidor MCP (Fase 6)
+
+Endpoint: `POST /api/mcp` (JSON-RPC 2.0 / Streamable HTTP).
+
+Tools expostas:
+
+| Tool | Tipo | Token? |
+|---|---|---|
+| `getGuildData(guildId?)` | leitura (sem `masterNotes`) | não |
+| `listSessions(adventureId)` | leitura | não |
+| `createSession(adventureId, …)` | escrita | sim |
+| `updateSession(sessionId, …)` | escrita (patch parcial) | sim |
+
+O token (`MCP_SERVICE_TOKEN`) das escritas pode ser enviado de três formas:
+
+```text
+Header:  Authorization: Bearer <token>     →  POST /api/mcp
+Query:   POST /api/mcp?token=<token>
+Rota:    POST /api/mcp/<token>
+```
+
+> ⚠️ Token em URL (query/rota) pode aparecer em logs de proxies e no histórico.
+> Prefira o header; use query/rota só quando o cliente MCP não suportar headers.
+
+Exemplo (listar ferramentas):
+
+```bash
+curl -X POST http://localhost:3000/api/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
