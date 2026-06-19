@@ -84,3 +84,9 @@ export const looseEndsCol = (
   guildId: string,
   adventureId: string,
 ) => adventureDoc(db, guildId, adventureId).collection("looseEnds");
+
+export const storyPlansCol = (
+  db: Firestore,
+  guildId: string,
+  adventureId: string,
+) => adventureDoc(db, guildId, adventureId).collection("storyPlans");

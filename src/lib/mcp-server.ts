@@ -1,16 +1,26 @@
 import { getMasterGuildId } from "@/adapters/config/master-config";
 import { getRepositories } from "@/adapters/config/repository-factory";
 import type { Session } from "@/core/entities/session";
+import { addStoryNote } from "@/core/usecases/add-story-note";
 import { createAdventurer } from "@/core/usecases/create-adventurer";
 import { createLooseEnd } from "@/core/usecases/create-loose-end";
 import { createSession } from "@/core/usecases/create-session";
+import { createStoryPlan } from "@/core/usecases/create-story-plan";
 import { getFullGuild } from "@/core/usecases/get-full-guild";
+import {
+  getStoryPlan,
+  getStoryPlans,
+} from "@/core/usecases/get-story-plans";
 import { updateSession } from "@/core/usecases/update-session";
+import { updateStoryPlan } from "@/core/usecases/update-story-plan";
 import {
   buildAdventurerInput,
   buildLooseEndInput,
   buildSessionInput,
   buildSessionPatch,
+  buildStoryNoteInput,
+  buildStoryPlanInput,
+  buildStoryPlanPatch,
 } from "@/lib/admin-serializers";
 import { isMcpWriteAuthorized } from "@/lib/mcp-auth";
 
@@ -259,6 +269,94 @@ const fullGuildSchema = {
   required: ["guild", "adventures"],
 };
 
+/* ---- Roteiro do mestre (StoryPlan) ---------------------------------------
+ * Material SIGILOSO de preparação/condução de uma narrativa. Diferente da
+ * Session (diário público pós-jogo), nunca entra em getGuildData/fullAdventure
+ * e TODAS as tools abaixo exigem MCP_SERVICE_TOKEN — leitura inclusa.       */
+
+const sceneChoiceSchema = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    body: { type: "string" },
+  },
+  required: ["title", "body"],
+};
+
+const sceneBlockSchema = {
+  type: "object",
+  description:
+    'Bloco de cena; "type" define a variante: clue (pista), test (teste de personagem/grupo ou combate), secret (segredo do mestre), danger (risco/consequência), choices (decisões do grupo).',
+  properties: {
+    type: {
+      type: "string",
+      enum: ["clue", "test", "secret", "danger", "choices"],
+    },
+    body: { type: "string" },
+    variant: { type: "string", enum: ["test", "combat"] },
+    tag: { type: "string" },
+    label: { type: "string" },
+    choices: { type: "array", items: sceneChoiceSchema },
+  },
+  required: ["type"],
+};
+
+const sceneSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    icon: { type: "string" },
+    title: { type: "string" },
+    meta: { type: "string" },
+    blocks: { type: "array", items: sceneBlockSchema },
+  },
+  required: ["id", "title", "blocks"],
+};
+
+const loreBannerSchema = {
+  type: "object",
+  properties: {
+    label: { type: "string" },
+    body: { type: "string" },
+    tags: { type: "array", items: { type: "string" } },
+  },
+  required: ["label", "body"],
+};
+
+const storyNoteSchema = {
+  type: "object",
+  description: "Nota lançada pelo mestre durante o jogo.",
+  properties: {
+    id: { type: "string" },
+    body: { type: "string" },
+    sceneId: { type: "string" },
+    createdAt: { type: "string", format: "date-time" },
+  },
+  required: ["id", "body", "createdAt"],
+};
+
+const storyPlanSchema = {
+  type: "object",
+  description:
+    "Roteiro do mestre — material sigiloso, vinculado a uma aventura.",
+  properties: {
+    id: { type: "string" },
+    guildId: { type: "string" },
+    adventureId: { type: "string" },
+    title: { type: "string" },
+    eyebrow: { type: "string" },
+    subtitle: { type: "string" },
+    loreBanner: loreBannerSchema,
+    scenes: { type: "array", items: sceneSchema },
+    reward: { type: "string" },
+    liveNotes: { type: "array", items: storyNoteSchema },
+    order: { type: "number" },
+    createdAt: { type: "string", format: "date-time" },
+    updatedAt: { type: "string", format: "date-time" },
+  },
+  required: ["id", "guildId", "adventureId", "title", "scenes", "liveNotes"],
+};
+
 const TOOLS: ToolDef[] = [
   {
     name: "getGuildData",
@@ -468,6 +566,153 @@ const TOOLS: ToolDef[] = [
     run: async (args) => {
       const input = buildLooseEndInput(args, getMasterGuildId());
       return createLooseEnd(getRepositories(), input);
+    },
+  },
+  {
+    name: "listStoryPlans",
+    description:
+      "Lista os roteiros do mestre (material sigiloso) de uma aventura. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string", description: "ID da aventura." },
+      },
+      required: ["adventureId"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        storyPlans: { type: "array", items: storyPlanSchema },
+      },
+      required: ["storyPlans"],
+    },
+    requiresAuth: true,
+    run: async (args) => {
+      const adventureId = String(args.adventureId);
+      const storyPlans = await getStoryPlans(
+        getRepositories(),
+        getMasterGuildId(),
+        adventureId,
+      );
+      return { storyPlans };
+    },
+  },
+  {
+    name: "getStoryPlan",
+    description:
+      "Obtém um roteiro do mestre pelo id. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        storyPlanId: { type: "string" },
+        adventureId: { type: "string" },
+      },
+      required: ["storyPlanId", "adventureId"],
+    },
+    outputSchema: storyPlanSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const storyPlanId = String(args.storyPlanId);
+      const adventureId = String(args.adventureId);
+      const plan = await getStoryPlan(
+        getRepositories(),
+        getMasterGuildId(),
+        adventureId,
+        storyPlanId,
+      );
+      if (!plan) throw new Error(`Roteiro "${storyPlanId}" não encontrado.`);
+      return plan;
+    },
+  },
+  {
+    name: "createStoryPlan",
+    description:
+      "Cria um roteiro do mestre (cenas, pistas, testes, segredos, riscos e escolhas) vinculado a uma aventura. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        title: { type: "string" },
+        eyebrow: { type: "string" },
+        subtitle: { type: "string" },
+        loreBanner: loreBannerSchema,
+        scenes: { type: "array", items: { type: "object" } },
+        reward: { type: "string" },
+        order: { type: "number" },
+      },
+      required: ["adventureId", "title"],
+    },
+    outputSchema: storyPlanSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const input = buildStoryPlanInput(args, getMasterGuildId());
+      return createStoryPlan(getRepositories(), input);
+    },
+  },
+  {
+    name: "updateStoryPlan",
+    description:
+      "Atualiza um roteiro do mestre existente (campos parciais). Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        storyPlanId: { type: "string" },
+        adventureId: { type: "string" },
+        title: { type: "string" },
+        eyebrow: { type: "string" },
+        subtitle: { type: "string" },
+        loreBanner: loreBannerSchema,
+        scenes: { type: "array", items: { type: "object" } },
+        reward: { type: "string" },
+        order: { type: "number" },
+      },
+      required: ["storyPlanId", "adventureId"],
+    },
+    outputSchema: storyPlanSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const storyPlanId = String(args.storyPlanId);
+      const adventureId = String(args.adventureId);
+      const patch = buildStoryPlanPatch(args);
+      return updateStoryPlan(
+        getRepositories(),
+        getMasterGuildId(),
+        adventureId,
+        storyPlanId,
+        patch,
+      );
+    },
+  },
+  {
+    name: "addStoryNote",
+    description:
+      "Lança uma nota do mestre durante o jogo, sobre uma cena/decisão do grupo num roteiro. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        storyPlanId: { type: "string" },
+        adventureId: { type: "string" },
+        body: { type: "string", description: "Texto da nota." },
+        sceneId: {
+          type: "string",
+          description: "Id da cena referenciada (opcional).",
+        },
+      },
+      required: ["storyPlanId", "adventureId", "body"],
+    },
+    outputSchema: storyPlanSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const storyPlanId = String(args.storyPlanId);
+      const adventureId = String(args.adventureId);
+      const note = buildStoryNoteInput(args);
+      return addStoryNote(
+        getRepositories(),
+        getMasterGuildId(),
+        adventureId,
+        storyPlanId,
+        note,
+      );
     },
   },
 ];

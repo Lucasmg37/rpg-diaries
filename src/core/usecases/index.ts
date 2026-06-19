@@ -7,3 +7,7 @@ export * from "./create-adventurer";
 export * from "./update-adventurer";
 export * from "./create-loose-end";
 export * from "./update-loose-end";
+export * from "./get-story-plans";
+export * from "./create-story-plan";
+export * from "./update-story-plan";
+export * from "./add-story-note";

@@ -150,6 +150,18 @@ export default function DesignSystemPage() {
           <Callout>
             Do céu, veio apenas uma resposta: &ldquo;Você é fraco&rdquo;.
           </Callout>
+          <Callout tone="amber">
+            Tone amber — testes e confrontos.
+          </Callout>
+          <Callout tone="purple">
+            Tone purple — segredos do mestre.
+          </Callout>
+          <Callout tone="red">
+            Tone red — riscos e perigos.
+          </Callout>
+          <Callout tone="green">
+            Tone green — recompensas e conclusões.
+          </Callout>
         </Panel>
 
         <Panel className="space-y-3 p-6">

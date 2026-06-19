@@ -9,6 +9,7 @@ import type { Adventurer } from "@/core/entities/adventurer";
 import type { Guild } from "@/core/entities/guild";
 import type { LooseEnd } from "@/core/entities/loose-end";
 import type { Session } from "@/core/entities/session";
+import type { StoryNote, StoryPlan } from "@/core/entities/story-plan";
 
 /** Converte Timestamp do Firestore (ou string/Date) em Date. */
 function toDate(value: unknown): Date {
@@ -96,5 +97,32 @@ export function mapLooseEnd(snap: Snap): LooseEnd {
     color: d.color,
     icon: d.icon,
     resolved: d.resolved,
+  };
+}
+
+export function mapStoryPlan(snap: Snap): StoryPlan {
+  const d = snap.data();
+  const liveNotes: StoryNote[] = (d.liveNotes ?? []).map(
+    (n: Record<string, unknown>) => ({
+      id: String(n.id),
+      body: String(n.body),
+      sceneId: n.sceneId ? String(n.sceneId) : undefined,
+      createdAt: toDate(n.createdAt),
+    }),
+  );
+  return {
+    id: snap.id,
+    guildId: d.guildId,
+    adventureId: d.adventureId,
+    title: d.title,
+    eyebrow: d.eyebrow ?? "",
+    subtitle: d.subtitle ?? "",
+    loreBanner: d.loreBanner ?? undefined,
+    scenes: d.scenes ?? [],
+    reward: d.reward ?? undefined,
+    liveNotes,
+    order: d.order ?? 0,
+    createdAt: toDate(d.createdAt),
+    updatedAt: toDate(d.updatedAt),
   };
 }

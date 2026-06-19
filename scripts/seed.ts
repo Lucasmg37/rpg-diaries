@@ -19,6 +19,7 @@ import {
   isFirestoreConfigured,
   looseEndsCol,
   sessionsCol,
+  storyPlansCol,
 } from "@/adapters/firestore/firestore-client";
 import {
   sampleAdventurers,
@@ -26,6 +27,7 @@ import {
   sampleGuild,
   sampleLooseEnds,
   sampleSessions,
+  sampleStoryPlans,
 } from "@/lib/sample-data";
 
 async function main() {
@@ -85,6 +87,19 @@ async function main() {
     });
   }
 
+  // Story plans (roteiros do mestre)
+  for (const p of sampleStoryPlans) {
+    batch.set(storyPlansCol(db, p.guildId, p.adventureId).doc(p.id), {
+      ...p,
+      liveNotes: p.liveNotes.map((n) => ({
+        ...n,
+        createdAt: Timestamp.fromDate(n.createdAt),
+      })),
+      createdAt: Timestamp.fromDate(p.createdAt),
+      updatedAt: Timestamp.fromDate(p.updatedAt),
+    });
+  }
+
   await batch.commit();
 
   console.log("✅ Seed concluído no Firestore:");
@@ -93,6 +108,7 @@ async function main() {
   console.log(`   Sessões: ${sampleSessions.length}`);
   console.log(`   Aventureiros: ${sampleAdventurers.length}`);
   console.log(`   Fios soltos: ${sampleLooseEnds.length}`);
+  console.log(`   Roteiros do mestre: ${sampleStoryPlans.length}`);
 }
 
 main().catch((err) => {

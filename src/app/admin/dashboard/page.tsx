@@ -72,6 +72,11 @@ export default function DashboardPage() {
             icon="🧵"
             label="Fios Soltos"
           />
+          <NavCard
+            href="/admin/management/story-plans"
+            icon="📜"
+            label="Roteiros"
+          />
         </div>
       </section>
 

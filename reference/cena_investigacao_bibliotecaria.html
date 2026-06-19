@@ -1,0 +1,457 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
+
+  * { box-sizing: border-box; }
+
+  .scene-doc {
+    font-family: 'Crimson Pro', Georgia, serif;
+    color: var(--color-text-primary);
+    max-width: 660px;
+    margin: 0 auto;
+    padding: 0 0 2rem;
+  }
+
+  .doc-header {
+    text-align: center;
+    padding: 1.75rem 1rem 1.25rem;
+    border-bottom: 1px solid var(--color-border-tertiary);
+    margin-bottom: 1.75rem;
+  }
+
+  .doc-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+  }
+
+  .doc-title {
+    font-family: 'Cinzel', serif;
+    font-size: 21px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .doc-sub {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  .lore-banner {
+    background: rgba(136,96,208,0.08);
+    border: 0.5px solid #8860d0;
+    border-radius: var(--border-radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 1.75rem;
+  }
+
+  .lore-banner-label {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #6040b0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .lore-banner-body {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--color-text-primary);
+  }
+
+  .lore-banner-body strong { font-weight: 600; }
+
+  .lore-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .lore-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 0.5px solid #8860d0;
+    color: #6040b0;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.3px;
+  }
+
+  .loc-block {
+    margin-bottom: 1.5rem;
+  }
+
+  .loc-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.75rem;
+  }
+
+  .loc-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .loc-title {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .loc-meta {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+  }
+
+  .clue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 42px;
+  }
+
+  .clue {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--color-text-primary);
+    border-left: 0.5px solid var(--color-border-tertiary);
+    padding-left: 12px;
+    padding-bottom: 2px;
+  }
+
+  .clue strong { font-weight: 600; }
+
+  .test-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: var(--color-background-warning);
+    border: 0.5px solid var(--color-border-warning);
+    border-radius: var(--border-radius-md);
+    padding: 8px 12px;
+    margin: 4px 0;
+    font-size: 13px;
+    color: var(--color-text-warning);
+  }
+
+  .test-tag {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--color-background-primary);
+    border-radius: 4px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .secret-box {
+    background: rgba(136,96,208,0.08);
+    border: 0.5px dashed #8860d0;
+    border-radius: var(--border-radius-md);
+    padding: 10px 14px;
+    margin: 4px 0 4px 42px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-text-primary);
+  }
+
+  .secret-label {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #6040b0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .danger-box {
+    background: var(--color-background-danger);
+    border: 0.5px solid var(--color-border-danger);
+    border-radius: var(--border-radius-md);
+    padding: 10px 14px;
+    margin: 4px 0 4px 42px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-text-danger);
+  }
+
+  .danger-label {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin: 4px 0 4px 42px;
+  }
+
+  .choice-card {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .choice-card .ch-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 1.75rem 0;
+  }
+
+  .divider-line {
+    flex: 1;
+    height: 0.5px;
+    background: var(--color-border-tertiary);
+  }
+
+  .divider-diamond {
+    width: 6px;
+    height: 6px;
+    background: var(--color-border-primary);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  .reward-note {
+    background: var(--color-background-success);
+    border: 0.5px solid var(--color-border-success);
+    border-radius: var(--border-radius-lg);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--color-text-success);
+    text-align: center;
+    margin-top: 1.5rem;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 0.5px solid var(--color-border-tertiary);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  .ld-amber { background: var(--color-background-warning); border: 0.5px solid var(--color-border-warning); }
+  .ld-purple { background: rgba(136,96,208,0.15); border: 0.5px dashed #8860d0; }
+  .ld-red { background: var(--color-background-danger); border: 0.5px solid var(--color-border-danger); }
+</style>
+
+<div class="scene-doc">
+  <h2 class="sr-only">Notas de mestre: cena de investigação do desaparecimento da auxiliar da biblioteca, atualizada com a identidade do mestre da marca arcana</h2>
+
+  <div class="doc-header">
+    <div class="doc-eyebrow">Notas do mestre · uso exclusivo</div>
+    <div class="doc-title">O rastro da bibliotecária</div>
+    <div class="doc-sub">Missão de busca — cadeia de pistas, testes e segredos</div>
+  </div>
+
+  <div class="lore-banner">
+    <div class="lore-banner-label">⬙ Atualização de lore — quem é o "mestre" da marca</div>
+    <div class="lore-banner-body">
+      A magia de ligação encontrada no corpo da auxiliar pertence ao <strong>antigo dono do grimório de Nyxx</strong> — o elfo que apareceu na visão dele no momento em que adquiriu o livro. Ele está vivo (ou ativo de alguma forma) e capaz de projetar magia à distância. <strong>Suas intenções permanecem desconhecidas</strong> — ele pode estar vigiando o Nyxx, testando-o, recuperando o que considera seu, ou perseguindo um objetivo totalmente independente que só colide com o grupo por acaso.
+    </div>
+    <div class="lore-tags">
+      <span class="lore-tag">Antigo dono do grimório</span>
+      <span class="lore-tag">Vivo / ativo</span>
+      <span class="lore-tag">Intenções desconhecidas</span>
+      <span class="lore-tag">Capaz de magia à distância</span>
+    </div>
+  </div>
+
+  <div class="loc-block">
+    <div class="loc-header">
+      <div class="loc-icon">📚</div>
+      <div>
+        <div class="loc-title">Cena 1 — A biblioteca</div>
+        <div class="loc-meta">Ponto de partida da investigação</div>
+      </div>
+    </div>
+    <div class="clue-list">
+      <div class="clue">A <strong>bibliotecária-mor</strong> confirma: a auxiliar foi vista por último na sexta, antes do fechamento.</div>
+
+      <div class="test-box">
+        <span class="test-tag">Teste — Nyxx</span>
+        <span>Memória/Intuição: ele percebe que a bibliotecária-mor pode reconhecê-lo como a última pessoa que falou com a auxiliar antes do incidente no porão.</span>
+      </div>
+
+      <div class="clue">O grupo decide vasculhar o local em busca de pistas.</div>
+      <div class="clue">No <strong>porão</strong> — área pouco visitada, onde ficam os livros de menor interesse — notam marcas recentes no pó, indicando movimento.</div>
+
+      <div class="test-box">
+        <span class="test-tag">Teste — Nyxx</span>
+        <span>Percepção/Memória: ao notar manchas de sangue no chão, ele se lembra de um corte na própria cabeça.</span>
+      </div>
+
+      <div class="clue">A bibliotecária-mor comenta que a auxiliar andava <strong>estranha</strong> desde um "ocorrido" no porão — sem saber que o responsável era Nyxx (ela pode ou não associar os dois fatos, a critério do mestre).</div>
+      <div class="clue">Ela explica o corte na cabeça como resultado de uma <strong>queda na escada</strong> ao descer para o porão.</div>
+      <div class="clue">Pelas pegadas e rastros de sangue, percebem que a auxiliar <strong>acordou e saiu do porão por conta própria</strong> — ou seja, Nyxx a deixou viva.</div>
+
+      <div class="clue">Uma placa na porta indica o <strong>horário de funcionamento</strong>: até 23h nas sextas. No sábado, a auxiliar não apareceu para o turno — ela trabalha sozinha durante as noites.</div>
+      <div class="clue">A porta da biblioteca <strong>não tem fechadura tradicional</strong>: ela se lacra magicamente quando alguém sai, e só a bibliotecária-mor pode reabri-la. Na manhã seguinte, a porta estava lacrada normalmente — confirmando que a auxiliar <strong>saiu e trancou tudo certo</strong>.</div>
+
+      <div class="secret-box">
+        <div class="secret-label">🔒 Conclusão da cena (mestre)</div>
+        Ela desapareceu no caminho de volta para casa — não dentro da biblioteca. O grupo deve seguir para a residência dela.
+      </div>
+    </div>
+  </div>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-diamond"></div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="loc-block">
+    <div class="loc-header">
+      <div class="loc-icon">🏠</div>
+      <div>
+        <div class="loc-title">Cena 2 — A casa da auxiliar</div>
+        <div class="loc-meta">Local do sequestro</div>
+      </div>
+    </div>
+    <div class="clue-list">
+      <div class="clue">A porta da casa está <strong>trancada</strong> — ela nunca chegou a entrar.</div>
+      <div class="clue">No gramado em frente, há <strong>sinais claros de luta</strong>.</div>
+      <div class="clue"><strong>Gotas de sangue notáveis</strong> no chão indicam que ela foi ferida durante o confronto.</div>
+
+      <div class="secret-box">
+        <div class="secret-label">🔒 O que houve (mestre)</div>
+        Alguém a interceptou no caminho para casa, lutou com ela e a capturou — levando-a para outro local.
+      </div>
+
+      <div class="clue">As gotas de sangue formam um <strong>rastro</strong> que pode ser seguido.</div>
+    </div>
+  </div>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-diamond"></div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="loc-block">
+    <div class="loc-header">
+      <div class="loc-icon">🌲</div>
+      <div>
+        <div class="loc-title">Cena 3 — A gruta na floresta</div>
+        <div class="loc-meta">~30 minutos de caminhada seguindo o rastro</div>
+      </div>
+    </div>
+    <div class="clue-list">
+      <div class="clue">O rastro de sangue atravessa a floresta por cerca de 30 minutos até uma <strong>gruta escondida</strong>.</div>
+
+      <div class="test-box">
+        <span class="test-tag">Teste — grupo</span>
+        <span>Percepção/Arcana: a entrada da gruta está protegida por magia. Sucesso permite identificar e tentar desarmar (novo teste). Falha no desarme: desperta um <strong>guardião invocado</strong> — informação totalmente oculta até esse momento.</span>
+      </div>
+
+      <div class="secret-box">
+        <div class="secret-label">🔒 Segredo — proteção da gruta</div>
+        A proteção foi criada por magia de invocação. Se desarmada com sucesso, o grupo entra sem confronto extra. Se falharem, surge o ser defensor — um combate antes do confronto principal.
+      </div>
+
+      <div class="test-box">
+        <span class="test-tag">Combate</span>
+        <span>No fundo da gruta, o grupo enfrenta o <strong>boss</strong> guardião do local.</span>
+      </div>
+
+      <div class="clue">Vencido o boss, encontram o <strong>corpo da auxiliar</strong> — torturada com extrema crueldade. Cortes pelo corpo, muito cabelo arrancado espalhado pelo chão. Obra de alguém sem qualquer compaixão.</div>
+
+      <div class="test-box">
+        <span class="test-tag">Teste — grupo</span>
+        <span>Arcana/Investigação: ao examinar o corpo, notam uma <strong>marca arcana</strong> nele.</span>
+      </div>
+
+      <div class="secret-box">
+        <div class="secret-label">🔒 Segredo — a marca</div>
+        É uma magia de ligação ao <strong>antigo dono do grimório de Nyxx</strong> — permanece ativa mesmo após a morte da vítima. Foi ele quem a torturou e marcou. Suas intenções com isso (vigilância, mensagem, recurso arcano, ou algo pior) permanecem desconhecidas. A marca pode ser rastreada de volta até ele caso ativada.
+      </div>
+
+      <div class="danger-box">
+        <span class="danger-label">⚠ Risco</span>
+        Se o grupo decidir <strong>levar o corpo</strong>, a marca pode ser <strong>ativada ao saírem da gruta</strong> — possivelmente alertando o antigo dono do grimório de que alguém encontrou seu trabalho. Consequências a critério do mestre.
+      </div>
+
+      <div class="choice-grid">
+        <div class="choice-card">
+          <span class="ch-title">Levar o corpo</span>
+          Risco de ativar a marca arcana ao saírem da gruta — possível alerta direto ao antigo dono do grimório. Pode gerar consequências futuras.
+        </div>
+        <div class="choice-card">
+          <span class="ch-title">Levar só a informação</span>
+          Mais seguro — registram o que encontraram e deixam o corpo na gruta, sem riscos imediatos.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reward-note">
+    É uma missão de busca — mesmo sem trazer o corpo, o grupo recebe recompensa pela informação e pela conclusão da investigação.
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot ld-amber"></span> Teste de personagem</div>
+    <div class="legend-item"><span class="legend-dot ld-purple"></span> Segredo do mestre — informação oculta</div>
+    <div class="legend-item"><span class="legend-dot ld-red"></span> Risco / consequência</div>
+  </div>
+
+</div>

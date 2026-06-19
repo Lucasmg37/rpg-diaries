@@ -19,12 +19,20 @@ import type {
   UpdateSessionInput,
 } from "@/core/entities/session";
 import type {
+  CreateStoryNoteInput,
+  CreateStoryPlanInput,
+  StoryNote,
+  StoryPlan,
+  UpdateStoryPlanInput,
+} from "@/core/entities/story-plan";
+import type {
   AdventureRepository,
   AdventurerRepository,
   GuildRepository,
   LooseEndRepository,
   Repositories,
   SessionRepository,
+  StoryPlanRepository,
 } from "@/core/ports";
 
 /**
@@ -38,6 +46,7 @@ export interface InMemoryStore {
   sessions: Map<string, Session>;
   adventurers: Map<string, Adventurer>;
   looseEnds: Map<string, LooseEnd>;
+  storyPlans: Map<string, StoryPlan>;
 }
 
 export function createEmptyStore(): InMemoryStore {
@@ -47,6 +56,7 @@ export function createEmptyStore(): InMemoryStore {
     sessions: new Map(),
     adventurers: new Map(),
     looseEnds: new Map(),
+    storyPlans: new Map(),
   };
 }
 
@@ -182,6 +192,76 @@ class InMemoryLooseEndRepository implements LooseEndRepository {
   }
 }
 
+class InMemoryStoryPlanRepository implements StoryPlanRepository {
+  constructor(private readonly store: InMemoryStore) {}
+
+  async getById(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+  ): Promise<StoryPlan | null> {
+    return this.store.storyPlans.get(id) ?? null;
+  }
+
+  async listByAdventure(
+    _guildId: string,
+    adventureId: string,
+  ): Promise<StoryPlan[]> {
+    return [...this.store.storyPlans.values()]
+      .filter((p) => p.adventureId === adventureId)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  async create(input: CreateStoryPlanInput): Promise<StoryPlan> {
+    const now = new Date();
+    const plan: StoryPlan = {
+      ...input,
+      id: randomUUID(),
+      liveNotes: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.store.storyPlans.set(plan.id, plan);
+    return plan;
+  }
+
+  async update(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    patch: UpdateStoryPlanInput,
+  ): Promise<StoryPlan> {
+    const existing = this.store.storyPlans.get(id);
+    if (!existing) throw new NotFoundError(`Roteiro "${id}" não encontrado.`);
+    const updated: StoryPlan = { ...existing, ...patch, updatedAt: new Date() };
+    this.store.storyPlans.set(id, updated);
+    return updated;
+  }
+
+  async addNote(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    note: CreateStoryNoteInput,
+  ): Promise<StoryPlan> {
+    const existing = this.store.storyPlans.get(id);
+    if (!existing) throw new NotFoundError(`Roteiro "${id}" não encontrado.`);
+    const created: StoryNote = {
+      id: randomUUID(),
+      body: note.body,
+      sceneId: note.sceneId,
+      createdAt: new Date(),
+    };
+    const updated: StoryPlan = {
+      ...existing,
+      liveNotes: [...existing.liveNotes, created],
+      updatedAt: new Date(),
+    };
+    this.store.storyPlans.set(id, updated);
+    return updated;
+  }
+}
+
 /**
  * Monta o conjunto de Repositories sobre um InMemoryStore. Se nenhum store for
  * passado, cria um vazio.
@@ -195,5 +275,6 @@ export function createInMemoryRepositories(
     sessions: new InMemorySessionRepository(store),
     adventurers: new InMemoryAdventurerRepository(store),
     looseEnds: new InMemoryLooseEndRepository(store),
+    storyPlans: new InMemoryStoryPlanRepository(store),
   };
 }

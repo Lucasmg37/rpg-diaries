@@ -3,6 +3,7 @@ import type { Adventurer } from "@/core/entities/adventurer";
 import type { Guild } from "@/core/entities/guild";
 import type { LooseEnd } from "@/core/entities/loose-end";
 import type { Session } from "@/core/entities/session";
+import type { StoryPlan } from "@/core/entities/story-plan";
 import {
   createEmptyStore,
   type InMemoryStore,
@@ -479,6 +480,171 @@ export const sampleSessions: Session[] = [
   },
 ];
 
+export const sampleStoryPlans: StoryPlan[] = [
+  {
+    id: "plan-rastro-bibliotecaria",
+    guildId: GUILD_ID,
+    adventureId: ADVENTURE_ID,
+    title: "O rastro da bibliotecária",
+    eyebrow: "Notas do mestre · uso exclusivo",
+    subtitle: "Missão de busca — cadeia de pistas, testes e segredos",
+    loreBanner: {
+      label: '⬙ Atualização de lore — quem é o "mestre" da marca',
+      body: "A magia de ligação encontrada no corpo da auxiliar pertence ao antigo dono do grimório de Nyxx — o elfo que apareceu na visão dele no momento em que adquiriu o livro. Ele está vivo (ou ativo de alguma forma) e capaz de projetar magia à distância. Suas intenções permanecem desconhecidas — ele pode estar vigiando o Nyxx, testando-o, recuperando o que considera seu, ou perseguindo um objetivo totalmente independente que só colide com o grupo por acaso.",
+      tags: [
+        "Antigo dono do grimório",
+        "Vivo / ativo",
+        "Intenções desconhecidas",
+        "Capaz de magia à distância",
+      ],
+    },
+    scenes: [
+      {
+        id: "cena-1-biblioteca",
+        icon: "📚",
+        title: "Cena 1 — A biblioteca",
+        meta: "Ponto de partida da investigação",
+        blocks: [
+          {
+            type: "clue",
+            body: "A bibliotecária-mor confirma: a auxiliar foi vista por último na sexta, antes do fechamento.",
+          },
+          {
+            type: "test",
+            variant: "test",
+            tag: "Teste — Nyxx",
+            body: "Memória/Intuição: ele percebe que a bibliotecária-mor pode reconhecê-lo como a última pessoa que falou com a auxiliar antes do incidente no porão.",
+          },
+          { type: "clue", body: "O grupo decide vasculhar o local em busca de pistas." },
+          {
+            type: "clue",
+            body: "No porão — área pouco visitada, onde ficam os livros de menor interesse — notam marcas recentes no pó, indicando movimento.",
+          },
+          {
+            type: "test",
+            variant: "test",
+            tag: "Teste — Nyxx",
+            body: "Percepção/Memória: ao notar manchas de sangue no chão, ele se lembra de um corte na própria cabeça.",
+          },
+          {
+            type: "clue",
+            body: "A bibliotecária-mor comenta que a auxiliar andava estranha desde um \"ocorrido\" no porão — sem saber que o responsável era Nyxx (ela pode ou não associar os dois fatos, a critério do mestre).",
+          },
+          {
+            type: "clue",
+            body: "Ela explica o corte na cabeça como resultado de uma queda na escada ao descer para o porão.",
+          },
+          {
+            type: "clue",
+            body: "Pelas pegadas e rastros de sangue, percebem que a auxiliar acordou e saiu do porão por conta própria — ou seja, Nyxx a deixou viva.",
+          },
+          {
+            type: "clue",
+            body: "Uma placa na porta indica o horário de funcionamento: até 23h nas sextas. No sábado, a auxiliar não apareceu para o turno — ela trabalha sozinha durante as noites.",
+          },
+          {
+            type: "clue",
+            body: "A porta da biblioteca não tem fechadura tradicional: ela se lacra magicamente quando alguém sai, e só a bibliotecária-mor pode reabri-la. Na manhã seguinte, a porta estava lacrada normalmente — confirmando que a auxiliar saiu e trancou tudo certo.",
+          },
+          {
+            type: "secret",
+            label: "🔒 Conclusão da cena (mestre)",
+            body: "Ela desapareceu no caminho de volta para casa — não dentro da biblioteca. O grupo deve seguir para a residência dela.",
+          },
+        ],
+      },
+      {
+        id: "cena-2-casa",
+        icon: "🏠",
+        title: "Cena 2 — A casa da auxiliar",
+        meta: "Local do sequestro",
+        blocks: [
+          { type: "clue", body: "A porta da casa está trancada — ela nunca chegou a entrar." },
+          { type: "clue", body: "No gramado em frente, há sinais claros de luta." },
+          {
+            type: "clue",
+            body: "Gotas de sangue notáveis no chão indicam que ela foi ferida durante o confronto.",
+          },
+          {
+            type: "secret",
+            label: "🔒 O que houve (mestre)",
+            body: "Alguém a interceptou no caminho para casa, lutou com ela e a capturou — levando-a para outro local.",
+          },
+          { type: "clue", body: "As gotas de sangue formam um rastro que pode ser seguido." },
+        ],
+      },
+      {
+        id: "cena-3-gruta",
+        icon: "🌲",
+        title: "Cena 3 — A gruta na floresta",
+        meta: "~30 minutos de caminhada seguindo o rastro",
+        blocks: [
+          {
+            type: "clue",
+            body: "O rastro de sangue atravessa a floresta por cerca de 30 minutos até uma gruta escondida.",
+          },
+          {
+            type: "test",
+            variant: "test",
+            tag: "Teste — grupo",
+            body: "Percepção/Arcana: a entrada da gruta está protegida por magia. Sucesso permite identificar e tentar desarmar (novo teste). Falha no desarme: desperta um guardião invocado — informação totalmente oculta até esse momento.",
+          },
+          {
+            type: "secret",
+            label: "🔒 Segredo — proteção da gruta",
+            body: "A proteção foi criada por magia de invocação. Se desarmada com sucesso, o grupo entra sem confronto extra. Se falharem, surge o ser defensor — um combate antes do confronto principal.",
+          },
+          {
+            type: "test",
+            variant: "combat",
+            tag: "Combate",
+            body: "No fundo da gruta, o grupo enfrenta o boss guardião do local.",
+          },
+          {
+            type: "clue",
+            body: "Vencido o boss, encontram o corpo da auxiliar — torturada com extrema crueldade. Cortes pelo corpo, muito cabelo arrancado espalhado pelo chão. Obra de alguém sem qualquer compaixão.",
+          },
+          {
+            type: "test",
+            variant: "test",
+            tag: "Teste — grupo",
+            body: "Arcana/Investigação: ao examinar o corpo, notam uma marca arcana nele.",
+          },
+          {
+            type: "secret",
+            label: "🔒 Segredo — a marca",
+            body: "É uma magia de ligação ao antigo dono do grimório de Nyxx — permanece ativa mesmo após a morte da vítima. Foi ele quem a torturou e marcou. Suas intenções com isso (vigilância, mensagem, recurso arcano, ou algo pior) permanecem desconhecidas. A marca pode ser rastreada de volta até ele caso ativada.",
+          },
+          {
+            type: "danger",
+            label: "⚠ Risco",
+            body: "Se o grupo decidir levar o corpo, a marca pode ser ativada ao saírem da gruta — possivelmente alertando o antigo dono do grimório de que alguém encontrou seu trabalho. Consequências a critério do mestre.",
+          },
+          {
+            type: "choices",
+            choices: [
+              {
+                title: "Levar o corpo",
+                body: "Risco de ativar a marca arcana ao saírem da gruta — possível alerta direto ao antigo dono do grimório. Pode gerar consequências futuras.",
+              },
+              {
+                title: "Levar só a informação",
+                body: "Mais seguro — registram o que encontraram e deixam o corpo na gruta, sem riscos imediatos.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    reward:
+      "É uma missão de busca — mesmo sem trazer o corpo, o grupo recebe recompensa pela informação e pela conclusão da investigação.",
+    liveNotes: [],
+    order: 1,
+    createdAt: date("2025-02-19T18:00:00Z"),
+    updatedAt: date("2025-02-19T18:00:00Z"),
+  },
+];
+
 /** Popula (ou cria) um InMemoryStore com todos os dados de exemplo. */
 export function buildSampleStore(
   store: InMemoryStore = createEmptyStore(),
@@ -488,5 +654,6 @@ export function buildSampleStore(
   for (const a of sampleAdventurers) store.adventurers.set(a.id, a);
   for (const l of sampleLooseEnds) store.looseEnds.set(l.id, l);
   for (const s of sampleSessions) store.sessions.set(s.id, s);
+  for (const p of sampleStoryPlans) store.storyPlans.set(p.id, p);
   return store;
 }

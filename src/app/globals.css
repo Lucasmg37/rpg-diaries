@@ -50,8 +50,8 @@
     @apply h-px w-16 bg-gradient-to-r from-transparent via-guild-border to-transparent;
   }
 
-  /* Caixa de citação / destaque dentro da timeline */
+  /* Caixa de citação / destaque dentro da timeline (cor por tone, ver Callout.tsx) */
   .callout {
-    @apply rounded-r-md border-l-2 border-guild-border bg-guild-border/10 px-4 py-3 text-sm italic text-guild-muted;
+    @apply rounded-r-md border-l-2 px-4 py-3 text-sm italic;
   }
 }

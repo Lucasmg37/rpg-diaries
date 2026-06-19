@@ -97,4 +97,5 @@ const NAV = [
   { href: "/admin/management/sessions", label: "Sessões" },
   { href: "/admin/management/adventurers", label: "Aventureiros" },
   { href: "/admin/management/loose-ends", label: "Fios Soltos" },
+  { href: "/admin/management/story-plans", label: "Roteiros" },
 ];

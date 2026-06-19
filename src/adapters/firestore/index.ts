@@ -6,6 +6,7 @@ import { FirestoreAdventurerRepository } from "./firestore-adventurer.repository
 import { FirestoreGuildRepository } from "./firestore-guild.repository";
 import { FirestoreLooseEndRepository } from "./firestore-loose-end.repository";
 import { FirestoreSessionRepository } from "./firestore-session.repository";
+import { FirestoreStoryPlanRepository } from "./firestore-story-plan.repository";
 
 export { getDb, isFirestoreConfigured } from "./firestore-client";
 
@@ -17,5 +18,6 @@ export function createFirestoreRepositories(db: Firestore): Repositories {
     sessions: new FirestoreSessionRepository(db),
     adventurers: new FirestoreAdventurerRepository(db),
     looseEnds: new FirestoreLooseEndRepository(db),
+    storyPlans: new FirestoreStoryPlanRepository(db),
   };
 }

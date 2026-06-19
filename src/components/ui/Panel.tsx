@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 /**
  * Panel — contêiner base do tema (borda dourada + fundo translúcido escuro).
@@ -7,9 +7,15 @@ import type { ReactNode } from "react";
 export function Panel({
   children,
   className = "",
+  style,
 }: {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }) {
-  return <div className={`panel ${className}`}>{children}</div>;
+  return (
+    <div className={`panel ${className}`} style={style}>
+      {children}
+    </div>
+  );
 }
