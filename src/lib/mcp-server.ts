@@ -505,6 +505,54 @@ const TOOLS: ToolDef[] = [
     },
   },
   {
+    name: "getSessionNotes",
+    description:
+      "Lê as notas privadas do mestre (masterNotes) de uma sessão. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sessionId: { type: "string" },
+        adventureId: {
+          type: "string",
+          description: "Opcional; se omitido, é resolvido pelo sessionId.",
+        },
+      },
+      required: ["sessionId"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        sessionId: { type: "string" },
+        masterNotes: { type: "string" },
+      },
+      required: ["sessionId", "masterNotes"],
+    },
+    requiresAuth: true,
+    run: async (args) => {
+      const sessionId = String(args.sessionId);
+      const guildId = getMasterGuildId();
+      const repos = getRepositories();
+
+      let adventureId = args.adventureId ? String(args.adventureId) : "";
+      if (!adventureId) {
+        const guild = await getFullGuild(repos, guildId);
+        const owner = guild?.adventures.find((a) =>
+          a.sessions.some((s) => s.id === sessionId),
+        );
+        if (!owner) throw new Error(`Sessão "${sessionId}" não encontrada.`);
+        adventureId = owner.adventure.id;
+      }
+
+      const session = await repos.sessions.getById(
+        guildId,
+        adventureId,
+        sessionId,
+      );
+      if (!session) throw new Error(`Sessão "${sessionId}" não encontrada.`);
+      return { sessionId, masterNotes: session.masterNotes };
+    },
+  },
+  {
     name: "createAdventurer",
     description:
       "Cria um aventureiro numa aventura. Cadastrado uma vez e depois referenciado (com badge próprio) em cada sessão. Requer MCP_SERVICE_TOKEN.",
