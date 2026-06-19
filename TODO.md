@@ -47,7 +47,7 @@ públicas SSG, autenticação do Mestre, área de gestão, servidor MCP). O que 
 
 - [x] Configurar **`DEPLOY_HOOK_URL`** (Vercel Deploy Hook) — configurado e funcionando
 - [x] Configurar env vars na **Vercel (Production)** — feito (MCP validado em prod)
-- [ ] Trocar o **`MASTER_PASSWORD` de teste** (`mestre-teste-123`) por uma senha real (relevante até a migração da auth para o Firebase)
+- [x] Trocar o **`MASTER_PASSWORD` de teste** (`mestre-teste-123`) por uma senha real (relevante até a migração da auth para o Firebase)
 
 ---
 
