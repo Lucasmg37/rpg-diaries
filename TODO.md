@@ -16,6 +16,11 @@ públicas SSG, autenticação do Mestre, área de gestão, servidor MCP). O que 
 - [x] `MCP_SERVICE_TOKEN` de teste no `.env.local` — **falta configurar na Vercel**
 - [x] **Critério atendido:** verificado via JSON-RPC (initialize, tools/list, getGuildData, create/updateSession)
 
+### MCP — melhorias
+
+- [ ] Melhorar os esquemas de **saída** dos serviços MCP (definir `outputSchema`/`structuredContent` das tools, em vez de só texto JSON)
+- [ ] Permitir criar **aventureiros** e **fios soltos** via MCP (novas tools `createAdventurer` / `createLooseEnd`, escrita com `MCP_SERVICE_TOKEN`)
+
 ---
 
 ## Fase 7 — Polimento e hardening
