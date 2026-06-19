@@ -1,4 +1,5 @@
 import type { Session, UpdateSessionInput } from "../entities/session";
+import { NotFoundError, ValidationError } from "../errors";
 import type { Repositories } from "../ports";
 
 /**
@@ -19,7 +20,7 @@ export async function updateSession(
     sessionId,
   );
   if (!existing) {
-    throw new Error(`Sessão "${sessionId}" não encontrada.`);
+    throw new NotFoundError(`Sessão "${sessionId}" não encontrada.`);
   }
 
   if (patch.participants) {
@@ -30,7 +31,7 @@ export async function updateSession(
     const validAdventurerIds = new Set(adventurers.map((a) => a.id));
     for (const p of patch.participants) {
       if (!validAdventurerIds.has(p.adventurerId)) {
-        throw new Error(
+        throw new ValidationError(
           `Aventureiro "${p.adventurerId}" não pertence à adventure "${adventureId}".`,
         );
       }

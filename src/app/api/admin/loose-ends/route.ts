@@ -4,6 +4,7 @@ import { getMasterGuildId } from "@/adapters/config/master-config";
 import { getRepositories } from "@/adapters/config/repository-factory";
 import { createLooseEnd } from "@/core/usecases/create-loose-end";
 import { getMasterSession, unauthorized } from "@/lib/auth-middleware";
+import { apiError } from "@/lib/api-response";
 import { buildLooseEndInput } from "@/lib/admin-serializers";
 
 /** POST /api/admin/loose-ends — cria um fio solto. */
@@ -25,6 +26,6 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json(created, { status: 201 });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+    return apiError(e);
   }
 }

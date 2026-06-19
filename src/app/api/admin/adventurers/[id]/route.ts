@@ -5,6 +5,7 @@ import { getRepositories } from "@/adapters/config/repository-factory";
 import type { UpdateAdventurerInput } from "@/core/entities/adventurer";
 import { updateAdventurer } from "@/core/usecases/update-adventurer";
 import { getMasterSession, unauthorized } from "@/lib/auth-middleware";
+import { apiError } from "@/lib/api-response";
 import { buildAdventurerInput } from "@/lib/admin-serializers";
 
 /** PATCH /api/admin/adventurers/[id] — atualiza um aventureiro (requer adventureId). */
@@ -40,6 +41,6 @@ export async function PATCH(
     );
     return NextResponse.json(updated);
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+    return apiError(e);
   }
 }

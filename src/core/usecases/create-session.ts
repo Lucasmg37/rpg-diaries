@@ -1,4 +1,5 @@
 import type { CreateSessionInput, Session } from "../entities/session";
+import { ValidationError } from "../errors";
 import type { Repositories } from "../ports";
 
 /**
@@ -17,7 +18,7 @@ export async function createSession(
   const validAdventurerIds = new Set(adventurers.map((a) => a.id));
   for (const p of input.participants) {
     if (!validAdventurerIds.has(p.adventurerId)) {
-      throw new Error(
+      throw new ValidationError(
         `Aventureiro "${p.adventurerId}" não pertence à adventure "${input.adventureId}".`,
       );
     }
@@ -30,7 +31,7 @@ export async function createSession(
   const validLooseEndIds = new Set(looseEnds.map((l) => l.id));
   for (const id of input.looseEndIds) {
     if (!validLooseEndIds.has(id)) {
-      throw new Error(
+      throw new ValidationError(
         `Fio solto "${id}" não pertence à adventure "${input.adventureId}".`,
       );
     }

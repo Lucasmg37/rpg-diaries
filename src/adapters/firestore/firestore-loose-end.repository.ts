@@ -5,6 +5,7 @@ import type {
   LooseEnd,
   UpdateLooseEndInput,
 } from "@/core/entities/loose-end";
+import { NotFoundError } from "@/core/errors";
 import type { LooseEndRepository } from "@/core/ports/loose-end-repository";
 import { looseEndsCol } from "./firestore-client";
 import { mapLooseEnd } from "./firestore-mappers";
@@ -34,7 +35,8 @@ export class FirestoreLooseEndRepository implements LooseEndRepository {
   ): Promise<LooseEnd> {
     const ref = looseEndsCol(this.db, guildId, adventureId).doc(id);
     const snap = await ref.get();
-    if (!snap.exists) throw new Error(`Fio solto "${id}" não encontrado.`);
+    if (!snap.exists)
+      throw new NotFoundError(`Fio solto "${id}" não encontrado.`);
     await ref.set(patch, { merge: true });
     return { ...mapLooseEnd(snap as never), ...patch };
   }

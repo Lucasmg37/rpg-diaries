@@ -25,11 +25,11 @@ públicas SSG, autenticação do Mestre, área de gestão, servidor MCP). O que 
 
 ## Fase 7 — Polimento e hardening
 
-- [ ] Tratamento de erros consistente nas API routes (status codes, mensagens)
-- [ ] Revisão final: nenhuma rota pública expõe `masterNotes` ou tokens
-- [ ] README com instruções completas de setup, seed e deploy
-- [ ] Rate limiting / proteção contra brute force no `POST /api/auth/login`
-- [ ] Regras de segurança do Firestore (defesa em profundidade — o Admin SDK as ignora)
+- [x] Tratamento de erros consistente nas API routes — `NotFoundError`/`ValidationError` (core) → `apiError` mapeia 404/400/500
+- [x] Revisão final: nenhuma rota pública expõe `masterNotes` ou tokens (auditado)
+- [x] README com instruções de setup, seed, deploy e MCP
+- [ ] ~~Rate limiting no login~~ — **despriorizado**: auth será migrada para o Firebase
+- [ ] Regras de segurança do Firestore (deny-all; defesa em profundidade — o Admin SDK as ignora)
 
 ---
 
@@ -45,18 +45,17 @@ públicas SSG, autenticação do Mestre, área de gestão, servidor MCP). O que 
 
 ## Deploy / operação
 
-- [ ] Configurar **`DEPLOY_HOOK_URL`** (Vercel → Project Settings → Git → Deploy Hooks) — o botão Publicar já está pronto
-- [ ] Trocar o **`MASTER_PASSWORD` de teste** (`mestre-teste-123`) por uma senha real
-- [ ] Configurar as env vars na **Vercel (Production)**: `FIREBASE_*`, `MASTER_GUILD_ID`, `MASTER_PASSWORD`, `JWT_SECRET`, `DEPLOY_HOOK_URL`, `MCP_SERVICE_TOKEN`
-- [ ] Validar o build da Vercel lendo o Firestore (env do Firebase no ambiente de build)
+- [x] Configurar **`DEPLOY_HOOK_URL`** (Vercel Deploy Hook) — configurado e funcionando
+- [x] Configurar env vars na **Vercel (Production)** — feito (MCP validado em prod)
+- [ ] Trocar o **`MASTER_PASSWORD` de teste** (`mestre-teste-123`) por uma senha real (relevante até a migração da auth para o Firebase)
 
 ---
 
 ## Qualidade / infra
 
+- [x] Configurar ESLint (`eslint.config.mjs` flat + `npm run lint`; roda também no `next build`)
 - [ ] Testes automatizados (use cases + adapters in-memory; mocks para Firestore)
-- [ ] Configurar ESLint (ausente — `next build` hoje pula o lint)
-- [ ] CI (typecheck + build + testes)
+- [ ] CI (typecheck + lint + build + testes)
 
 ---
 

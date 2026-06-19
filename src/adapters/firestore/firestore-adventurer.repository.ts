@@ -5,6 +5,7 @@ import type {
   CreateAdventurerInput,
   UpdateAdventurerInput,
 } from "@/core/entities/adventurer";
+import { NotFoundError } from "@/core/errors";
 import type { AdventurerRepository } from "@/core/ports/adventurer-repository";
 import { adventurersCol } from "./firestore-client";
 import { mapAdventurer } from "./firestore-mappers";
@@ -36,7 +37,8 @@ export class FirestoreAdventurerRepository implements AdventurerRepository {
   ): Promise<Adventurer> {
     const ref = adventurersCol(this.db, guildId, adventureId).doc(id);
     const snap = await ref.get();
-    if (!snap.exists) throw new Error(`Aventureiro "${id}" não encontrado.`);
+    if (!snap.exists)
+      throw new NotFoundError(`Aventureiro "${id}" não encontrado.`);
     await ref.set(patch, { merge: true });
     return { ...mapAdventurer(snap as never), ...patch };
   }

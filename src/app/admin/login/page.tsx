@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -72,12 +73,12 @@ export default function LoginPage() {
       </form>
 
       <p className="mt-4 text-center text-xs text-guild-muted">
-        <a
+        <Link
           href="/"
           className="transition-colors hover:text-guild-goldsoft"
         >
           ← Voltar ao diário
-        </a>
+        </Link>
       </p>
     </div>
   );

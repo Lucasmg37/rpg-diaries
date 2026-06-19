@@ -5,6 +5,7 @@ import type {
   Session,
   UpdateSessionInput,
 } from "@/core/entities/session";
+import { NotFoundError } from "@/core/errors";
 import type { SessionRepository } from "@/core/ports/session-repository";
 import { sessionsCol } from "./firestore-client";
 import { mapSession } from "./firestore-mappers";
@@ -46,7 +47,7 @@ export class FirestoreSessionRepository implements SessionRepository {
   ): Promise<Session> {
     const ref = sessionsCol(this.db, guildId, adventureId).doc(id);
     const snap = await ref.get();
-    if (!snap.exists) throw new Error(`Sessão "${id}" não encontrada.`);
+    if (!snap.exists) throw new NotFoundError(`Sessão "${id}" não encontrada.`);
 
     const updatedAt = new Date();
     await ref.set(

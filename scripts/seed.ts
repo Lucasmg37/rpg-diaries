@@ -14,7 +14,6 @@ import { Timestamp } from "firebase-admin/firestore";
 import {
   adventureDoc,
   adventurersCol,
-  adventuresCol,
   getDb,
   guildDoc,
   isFirestoreConfigured,

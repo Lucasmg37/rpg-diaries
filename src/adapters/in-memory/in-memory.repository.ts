@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { NotFoundError } from "@/core/errors";
 import type { Adventure } from "@/core/entities/adventure";
 import type {
   Adventurer,
@@ -110,7 +111,7 @@ class InMemorySessionRepository implements SessionRepository {
     patch: UpdateSessionInput,
   ): Promise<Session> {
     const existing = this.store.sessions.get(id);
-    if (!existing) throw new Error(`Sessão "${id}" não encontrada.`);
+    if (!existing) throw new NotFoundError(`Sessão "${id}" não encontrada.`);
     const updated: Session = { ...existing, ...patch, updatedAt: new Date() };
     this.store.sessions.set(id, updated);
     return updated;
@@ -142,7 +143,7 @@ class InMemoryAdventurerRepository implements AdventurerRepository {
     patch: UpdateAdventurerInput,
   ): Promise<Adventurer> {
     const existing = this.store.adventurers.get(id);
-    if (!existing) throw new Error(`Aventureiro "${id}" não encontrado.`);
+    if (!existing) throw new NotFoundError(`Aventureiro "${id}" não encontrado.`);
     const updated: Adventurer = { ...existing, ...patch };
     this.store.adventurers.set(id, updated);
     return updated;
@@ -174,7 +175,7 @@ class InMemoryLooseEndRepository implements LooseEndRepository {
     patch: UpdateLooseEndInput,
   ): Promise<LooseEnd> {
     const existing = this.store.looseEnds.get(id);
-    if (!existing) throw new Error(`Fio solto "${id}" não encontrado.`);
+    if (!existing) throw new NotFoundError(`Fio solto "${id}" não encontrado.`);
     const updated: LooseEnd = { ...existing, ...patch };
     this.store.looseEnds.set(id, updated);
     return updated;

@@ -5,6 +5,7 @@ import { getRepositories } from "@/adapters/config/repository-factory";
 import type { UpdateSessionInput } from "@/core/entities/session";
 import { updateSession } from "@/core/usecases/update-session";
 import { getMasterSession, unauthorized } from "@/lib/auth-middleware";
+import { apiError } from "@/lib/api-response";
 import { buildSessionInput } from "@/lib/admin-serializers";
 
 /** PATCH /api/admin/sessions/[id] — atualiza uma sessão (requer adventureId no corpo). */
@@ -41,6 +42,6 @@ export async function PATCH(
     );
     return NextResponse.json(updated);
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+    return apiError(e);
   }
 }

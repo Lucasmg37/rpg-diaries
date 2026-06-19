@@ -5,6 +5,7 @@ import { getRepositories } from "@/adapters/config/repository-factory";
 import type { UpdateLooseEndInput } from "@/core/entities/loose-end";
 import { updateLooseEnd } from "@/core/usecases/update-loose-end";
 import { getMasterSession, unauthorized } from "@/lib/auth-middleware";
+import { apiError } from "@/lib/api-response";
 import { buildLooseEndInput } from "@/lib/admin-serializers";
 
 /** PATCH /api/admin/loose-ends/[id] — atualiza um fio solto (requer adventureId). */
@@ -40,6 +41,6 @@ export async function PATCH(
     );
     return NextResponse.json(updated);
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+    return apiError(e);
   }
 }

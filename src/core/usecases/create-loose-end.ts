@@ -1,4 +1,5 @@
 import type { CreateLooseEndInput, LooseEnd } from "../entities/loose-end";
+import { NotFoundError } from "../errors";
 import type { Repositories } from "../ports";
 
 /** Cria um fio solto na adventure. */
@@ -11,7 +12,7 @@ export async function createLooseEnd(
     input.adventureId,
   );
   if (!adventure) {
-    throw new Error(`Adventure "${input.adventureId}" não encontrada.`);
+    throw new NotFoundError(`Adventure "${input.adventureId}" não encontrada.`);
   }
   return repos.looseEnds.create(input);
 }

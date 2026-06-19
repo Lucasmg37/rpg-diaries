@@ -2,6 +2,7 @@ import type {
   Adventurer,
   CreateAdventurerInput,
 } from "../entities/adventurer";
+import { NotFoundError } from "../errors";
 import type { Repositories } from "../ports";
 
 /**
@@ -17,7 +18,7 @@ export async function createAdventurer(
     input.adventureId,
   );
   if (!adventure) {
-    throw new Error(`Adventure "${input.adventureId}" não encontrada.`);
+    throw new NotFoundError(`Adventure "${input.adventureId}" não encontrada.`);
   }
   return repos.adventurers.create(input);
 }
