@@ -289,15 +289,17 @@ export function StoryPlanManager({
                 {p.scenes.length} cena(s) · {p.liveNotes.length} nota(s) ao vivo
               </span>
             </span>
-            <Link
-              href={`/story-plans/${p.id}?adventureId=${encodeURIComponent(adventureId)}`}
-              className="text-xs uppercase tracking-wide text-guild-goldsoft transition-colors hover:text-guild-gold"
-            >
-              Ver
-            </Link>
-            <Button type="button" variant="ghost" onClick={() => startEdit(p)}>
-              Editar
-            </Button>
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/story-plans/${p.id}?adventureId=${encodeURIComponent(adventureId)}`}
+                className="text-xs uppercase tracking-wide text-guild-goldsoft transition-colors hover:text-guild-gold"
+              >
+                Ver
+              </Link>
+              <Button type="button" variant="ghost" onClick={() => startEdit(p)}>
+                Editar
+              </Button>
+            </div>
           </div>
         ))}
         {plans.length === 0 ? (
