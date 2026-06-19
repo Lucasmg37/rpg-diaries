@@ -86,7 +86,13 @@ function planToForm(p: StoryPlan): FormState {
   };
 }
 
-export function StoryPlanManager() {
+export function StoryPlanManager({
+  initialAdventureId,
+  editId,
+}: {
+  initialAdventureId?: string;
+  editId?: string;
+} = {}) {
   const [guild, setGuild] = useState<FullGuild | null>(null);
   const [adventureId, setAdventureId] = useState("");
   const [plans, setPlans] = useState<StoryPlan[]>([]);
@@ -94,15 +100,17 @@ export function StoryPlanManager() {
   const [form, setForm] = useState<FormState>({ ...EMPTY_FORM });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [appliedEditId, setAppliedEditId] = useState(false);
 
   useEffect(() => {
     getAdminGuild()
       .then((g) => {
         setGuild(g);
-        if (g.adventures[0]) setAdventureId(g.adventures[0].adventure.id);
+        const defaultId = initialAdventureId ?? g.adventures[0]?.adventure.id;
+        if (defaultId) setAdventureId(defaultId);
       })
       .catch((e) => setError((e as Error).message));
-  }, []);
+  }, [initialAdventureId]);
 
   function loadPlans(advId: string) {
     return listStoryPlans(advId)
@@ -113,6 +121,15 @@ export function StoryPlanManager() {
   useEffect(() => {
     if (adventureId) loadPlans(adventureId);
   }, [adventureId]);
+
+  useEffect(() => {
+    if (!editId || appliedEditId) return;
+    const plan = plans.find((p) => p.id === editId);
+    if (plan) {
+      startEdit(plan);
+      setAppliedEditId(true);
+    }
+  }, [plans, editId, appliedEditId]);
 
   const adventures = useMemo(
     () => guild?.adventures.map((a) => a.adventure) ?? [],
@@ -273,7 +290,7 @@ export function StoryPlanManager() {
               </span>
             </span>
             <Link
-              href={`/admin/story-plans/${p.id}?adventureId=${encodeURIComponent(adventureId)}`}
+              href={`/story-plans/${p.id}?adventureId=${encodeURIComponent(adventureId)}`}
               className="text-xs uppercase tracking-wide text-guild-goldsoft transition-colors hover:text-guild-gold"
             >
               Ver

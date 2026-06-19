@@ -10,11 +10,13 @@ import { Ornament } from "@/components/ui/Ornament";
 import { Panel } from "@/components/ui/Panel";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Stat } from "@/components/ui/Stat";
+import type { StoryPlan } from "@/core/entities/story-plan";
 import type { FullGuild } from "@/core/entities/views";
-import { getAdminGuild } from "@/lib/admin-client";
+import { getAdminGuild, listStoryPlans } from "@/lib/admin-client";
 
 export default function DashboardPage() {
   const [guild, setGuild] = useState<FullGuild | null>(null);
+  const [storyPlans, setStoryPlans] = useState<StoryPlan[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -22,6 +24,13 @@ export default function DashboardPage() {
       .then(setGuild)
       .catch((e) => setError((e as Error).message));
   }, []);
+
+  useEffect(() => {
+    if (!guild) return;
+    Promise.all(guild.adventures.map((a) => listStoryPlans(a.adventure.id)))
+      .then((lists) => setStoryPlans(lists.flat()))
+      .catch(() => {});
+  }, [guild]);
 
   if (error) return <Alert tone="error">{error}</Alert>;
   if (!guild)
@@ -77,6 +86,42 @@ export default function DashboardPage() {
             icon="📜"
             label="Roteiros"
           />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <SectionHeading title="Roteiros do Mestre" />
+        <div className="space-y-2">
+          {storyPlans.map((p) => (
+            <div key={p.id} className="panel flex items-center gap-3 p-4">
+              <span className="flex-1">
+                <span className="block font-heading text-sm font-semibold text-guild-gold">
+                  {p.title}
+                </span>
+                <span className="text-xs text-guild-muted">
+                  {p.scenes.length} cena(s) · {p.liveNotes.length} nota(s) ao
+                  vivo
+                </span>
+              </span>
+              <Link
+                href={`/story-plans/${p.id}?adventureId=${encodeURIComponent(p.adventureId)}`}
+                className="text-xs uppercase tracking-wide text-guild-goldsoft transition-colors hover:text-guild-gold"
+              >
+                Ver
+              </Link>
+              <Link
+                href={`/admin/management/story-plans?edit=${p.id}&adventureId=${encodeURIComponent(p.adventureId)}`}
+                className="text-xs uppercase tracking-wide text-guild-goldsoft transition-colors hover:text-guild-gold"
+              >
+                Editar
+              </Link>
+            </div>
+          ))}
+          {storyPlans.length === 0 ? (
+            <p className="py-4 text-center text-xs text-guild-muted">
+              Nenhum roteiro cadastrado ainda.
+            </p>
+          ) : null}
         </div>
       </section>
 

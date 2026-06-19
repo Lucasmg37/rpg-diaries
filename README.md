@@ -4,24 +4,33 @@ Sistema de publicação de diários de RPG. Páginas públicas geradas estaticam
 (SSG) via Next.js, domínio isolado por trás de _ports_ e persistência em
 Firestore via _adapters_.
 
-> **Estado atual:** Fases 1–3 implementadas (domínio, integração Firestore e
-> páginas públicas). Admin, deploy hook e MCP (Fases 4–7) ainda não.
+> **Estado atual:** Fases 1–6 implementadas — domínio, integração Firestore,
+> páginas públicas (SSG), autenticação do Mestre, área de gestão, deploy hook,
+> servidor MCP e roteiros do mestre com notas ao vivo. Pendências em `TODO.md`.
 
 ## Arquitetura
 
 ```
 src/
   core/            # domínio puro — NÃO importa Firestore
-    entities/      # Guild, Adventure, Session, SessionParticipant, Adventurer, LooseEnd + views
+    entities/      # Guild, Adventure, Session, Adventurer, LooseEnd, StoryPlan + views
     ports/         # interfaces de repositório
-    usecases/      # getFullGuild/Adventure/Session, create/update*
+    usecases/      # getFullGuild/Adventure/Session, create/update*, get/create/update StoryPlan, addStoryNote
   adapters/
     in-memory/     # adapter em memória (Fase 1 / fallback de dev)
-    firestore/     # adapter Firestore (Admin SDK)
+    firestore/     # adapter Firestore (Admin SDK), um repository por entidade
     config/        # repository-factory (ÚNICO ponto que decide o adapter) + master-config
-  app/             # páginas Next.js (App Router, SSG)
-  components/public # TagBadge, PartyCard, TimelineEntryItem, AdventurerCard, LooseEndCard
-  lib/             # sample-data, guild-data (loader cacheado)
+  app/
+    (público)         # páginas SSG: /, /adventures/[slug], /sessions/[id]
+    admin/            # área de gestão (client-gated por sessão) — dashboard, login, management/*
+    story-plans/[id]  # visualizador do roteiro do mestre — sigiloso, gated no servidor (cookie + JWT)
+    api/admin/        # rotas de gestão (sessions, adventurers, loose-ends, story-plans, publish)
+    api/mcp/          # servidor MCP (JSON-RPC 2.0)
+  components/
+    public/           # TagBadge, PartyCard, TimelineEntryItem, AdventurerCard, LooseEndCard
+    admin/            # SessionForm, AdventurerManager, LooseEndManager, StoryPlanManager/Document/Viewer, LiveNotesPanel
+    ui/               # design system (Panel, Callout, Pill, Eyebrow, Stat, Field, ...) — ver /design-system
+  lib/             # sample-data, guild-data (loader cacheado), jwt, auth-middleware, admin-client/serializers
 scripts/
   demo-phase1.ts   # demonstração do domínio em memória
   seed.ts          # popula o Firestore com os dados de exemplo
@@ -57,6 +66,7 @@ Sem `.env.local` preenchido, o app usa os dados de exemplo in-memory.
 | `npm run dev` | Servidor de desenvolvimento |
 | `npm run build` | Gera as páginas estáticas (Fase 3) |
 | `npm run typecheck` | Checagem de tipos |
+| `npm run lint` | ESLint |
 
 ## Variáveis de ambiente
 
@@ -112,3 +122,22 @@ curl -X POST http://localhost:3000/api/mcp \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
+
+## Roteiros do Mestre
+
+Material sigiloso de preparação de cena (pistas, testes, segredos, riscos,
+escolhas do grupo) por aventura, com notas ao vivo lançadas durante a mesa.
+Nunca aparece nas páginas públicas nem no `getGuildData` do MCP.
+
+- **Gestão** (`/admin/management/story-plans`): cadastro/edição completos.
+  Aceita `?edit=<id>&adventureId=<adv>` para abrir um roteiro específico já em
+  modo de edição (usado pelos links "Editar" do dashboard).
+- **Visualizador** (`/story-plans/[id]?adventureId=<adv>`): renderiza o roteiro
+  no padrão visual das páginas públicas (mesmo layout raiz, sem o menu de
+  gestão), mas a rota é dinâmica e verifica a sessão do Mestre no servidor
+  (cookie + JWT) antes de renderizar — redireciona para `/admin/login` se não
+  houver sessão válida. Inclui o painel de notas ao vivo (`LiveNotesPanel`).
+- **Dashboard** (`/admin/dashboard`): lista todos os roteiros com contagem de
+  cenas/notas e os atalhos "Ver" e "Editar".
+- **MCP**: roteiros do mestre não são expostos via MCP (somente leitura
+  pública/administrativa pela própria área de gestão).
