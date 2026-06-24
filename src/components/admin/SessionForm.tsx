@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
+  CheckboxOption,
   ConfirmDialog,
   Eyebrow,
   Field,
@@ -364,14 +365,12 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
               key={p.adventurerId}
               className="rounded-md border border-guild-border p-3"
             >
-              <label className="flex items-center gap-2 text-sm text-guild-gold">
-                <input
-                  type="checkbox"
-                  checked={p.include}
-                  onChange={(e) => patchParticipant(i, "include", e.target.checked)}
-                />
+              <CheckboxOption
+                checked={p.include}
+                onChange={() => patchParticipant(i, "include", !p.include)}
+              >
                 <span aria-hidden>{p.icon}</span> {p.name}
-              </label>
+              </CheckboxOption>
               {p.include ? (
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   <Field
@@ -511,23 +510,19 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
         <Eyebrow>Fios soltos desta sessão</Eyebrow>
         {looseEndOptions.length > 0 ? (
           looseEndOptions.map((l) => (
-            <label
+            <CheckboxOption
               key={l.id}
-              className="flex items-center gap-2 text-sm text-guild-muted"
+              checked={looseEndIds.includes(l.id)}
+              onChange={() =>
+                setLooseEndIds((prev) =>
+                  prev.includes(l.id)
+                    ? prev.filter((x) => x !== l.id)
+                    : [...prev, l.id],
+                )
+              }
             >
-              <input
-                type="checkbox"
-                checked={looseEndIds.includes(l.id)}
-                onChange={(e) =>
-                  setLooseEndIds((prev) =>
-                    e.target.checked
-                      ? [...prev, l.id]
-                      : prev.filter((x) => x !== l.id),
-                  )
-                }
-              />
               <span aria-hidden>{l.icon}</span> {l.title}
-            </label>
+            </CheckboxOption>
           ))
         ) : (
           <p className="text-sm text-guild-muted">
@@ -612,27 +607,23 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
         <Eyebrow>NPCs & Bosses presentes nesta sessão</Eyebrow>
         {npcs.length > 0 ? (
           npcs.map((n) => (
-            <label
+            <CheckboxOption
               key={n.id}
-              className="flex items-center gap-2 text-sm text-guild-muted"
+              checked={npcIds.includes(n.id)}
+              onChange={() =>
+                setNpcIds((prev) =>
+                  prev.includes(n.id)
+                    ? prev.filter((x) => x !== n.id)
+                    : [...prev, n.id],
+                )
+              }
             >
-              <input
-                type="checkbox"
-                checked={npcIds.includes(n.id)}
-                onChange={(e) =>
-                  setNpcIds((prev) =>
-                    e.target.checked
-                      ? [...prev, n.id]
-                      : prev.filter((x) => x !== n.id),
-                  )
-                }
-              />
               <span aria-hidden>{n.icon ?? (n.kind === "boss" ? "👹" : "🧙")}</span>{" "}
               {n.name}
               <span className="text-xs text-guild-muted/70">
                 ({npcKindLabel(n)})
               </span>
-            </label>
+            </CheckboxOption>
           ))
         ) : (
           <p className="text-sm text-guild-muted">

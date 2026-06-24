@@ -9,7 +9,14 @@ import type { Npc } from "@/core/entities/npc";
 import type { NpcEvent } from "@/core/entities/npc-event";
 import type { FullGuild } from "@/core/entities/views";
 import { getAdminGuild, getNpcTimeline } from "@/lib/admin-client";
-import { isNpcDead, npcKindLabel, npcStatusLabel } from "@/lib/npc-view";
+import {
+  formatNpcDamage,
+  formatNpcSavingThrow,
+  formatNpcSkill,
+  isNpcDead,
+  npcKindLabel,
+  npcStatusLabel,
+} from "@/lib/npc-view";
 import { NpcEventForm } from "./NpcEventForm";
 import { NpcTimeline } from "./NpcTimeline";
 
@@ -128,21 +135,78 @@ export function NpcDetail({
             <Stat label="Defesa" value={String(stats.defesa)} />
           </div>
           {stats.resistencias?.length ? (
-            <div className="flex flex-wrap gap-2">
-              {stats.resistencias.map((r) => (
-                <Pill key={r} color={colors.goldsoft}>{r}</Pill>
-              ))}
+            <div className="space-y-1">
+              <Eyebrow>Resistências</Eyebrow>
+              <div className="flex flex-wrap gap-2">
+                {stats.resistencias.map((r) => (
+                  <Pill key={r} color={colors.goldsoft}>{r}</Pill>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {stats.imunidades?.length ? (
+            <div className="space-y-1">
+              <Eyebrow>Imunidades</Eyebrow>
+              <div className="flex flex-wrap gap-2">
+                {stats.imunidades.map((r) => (
+                  <Pill key={r} color={colors.purple}>{r}</Pill>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {stats.pericias?.length ? (
+            <div className="space-y-1">
+              <Eyebrow>Perícias</Eyebrow>
+              <div className="flex flex-wrap gap-2">
+                {stats.pericias.map((p) => (
+                  <Pill key={p.nome} color={colors.green}>{formatNpcSkill(p)}</Pill>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {stats.habilidades?.length ? (
+            <div className="space-y-1">
+              <Eyebrow>Habilidades</Eyebrow>
+              <div className="space-y-1 text-sm text-guild-muted">
+                {stats.habilidades.map((h) => (
+                  <p key={h.nome}>
+                    <strong className="text-guild-gold">{h.nome}</strong>
+                    {h.efeito ? ` — ${h.efeito}` : ""}
+                  </p>
+                ))}
+              </div>
             </div>
           ) : null}
           {stats.ataques?.length ? (
             <div className="space-y-1 border-t border-guild-border pt-3 text-sm text-guild-muted">
+              <Eyebrow>Ataques</Eyebrow>
               {stats.ataques.map((a) => (
                 <p key={a.name}>
                   <strong className="text-guild-gold">{a.name}</strong>
                   {a.bonus ? ` ${a.bonus}` : ""}
-                  {a.damage ? ` — ${a.damage}` : ""}
+                  {a.damage?.length ? ` — ${formatNpcDamage(a.damage)}` : ""}
+                  {a.critico ? ` (crítico ${a.critico})` : ""}
                 </p>
               ))}
+            </div>
+          ) : null}
+          {stats.magias?.length ? (
+            <div className="space-y-1 border-t border-guild-border pt-3 text-sm text-guild-muted">
+              <Eyebrow>Magias</Eyebrow>
+              {stats.magias.map((m) => {
+                const savingThrow = formatNpcSavingThrow(m.resistencia);
+                return (
+                  <p key={m.nome}>
+                    <strong className="text-guild-gold">{m.nome}</strong>
+                    {m.tipo ? ` (${m.tipo})` : ""}
+                    {m.area ? ` — Área: ${m.area}` : ""}
+                    {savingThrow ? ` — Resistência: ${savingThrow}` : ""}
+                    {m.resistencia?.sucesso ? ` — Sucesso: ${m.resistencia.sucesso}` : ""}
+                    {m.resistencia?.falha ? ` — Falha: ${m.resistencia.falha}` : ""}
+                    {m.efeito ? ` — ${m.efeito}` : ""}
+                  </p>
+                );
+              })}
             </div>
           ) : null}
         </Panel>

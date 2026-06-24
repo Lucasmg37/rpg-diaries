@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
+  CheckboxOption,
   ConfirmDialog,
   Eyebrow,
   Field,
@@ -652,31 +653,30 @@ export function StoryPlanManager({
                 </span>
                 {npcs.length > 0 ? (
                   <div className="flex flex-wrap gap-3">
-                    {npcs.map((n) => (
-                      <label
-                        key={n.id}
-                        className="flex items-center gap-1.5 text-sm text-guild-muted"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={(scene.npcIds ?? []).includes(n.id)}
-                          onChange={(e) =>
+                    {npcs.map((n) => {
+                      const checked = (scene.npcIds ?? []).includes(n.id);
+                      return (
+                        <CheckboxOption
+                          key={n.id}
+                          checked={checked}
+                          onChange={() =>
                             updateScene(sceneIdx, {
-                              npcIds: e.target.checked
-                                ? [...(scene.npcIds ?? []), n.id]
-                                : (scene.npcIds ?? []).filter((x) => x !== n.id),
+                              npcIds: checked
+                                ? (scene.npcIds ?? []).filter((x) => x !== n.id)
+                                : [...(scene.npcIds ?? []), n.id],
                             })
                           }
-                        />
-                        <span aria-hidden>
-                          {n.icon ?? (n.kind === "boss" ? "👹" : "🧙")}
-                        </span>{" "}
-                        {n.name}
-                        <span className="text-xs text-guild-muted/70">
-                          ({npcKindLabel(n)})
-                        </span>
-                      </label>
-                    ))}
+                        >
+                          <span aria-hidden>
+                            {n.icon ?? (n.kind === "boss" ? "👹" : "🧙")}
+                          </span>{" "}
+                          {n.name}
+                          <span className="text-xs text-guild-muted/70">
+                            ({npcKindLabel(n)})
+                          </span>
+                        </CheckboxOption>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-sm text-guild-muted">

@@ -7,7 +7,13 @@ import type {
   CreateLooseEndInput,
   UpdateLooseEndInput,
 } from "@/core/entities/loose-end";
-import type { CreateNpcInput, NpcStats, UpdateNpcInput } from "@/core/entities/npc";
+import type {
+  CreateNpcInput,
+  NpcAttack,
+  NpcSavingThrow,
+  NpcStats,
+  UpdateNpcInput,
+} from "@/core/entities/npc";
 import type { CreateNpcEventInput } from "@/core/entities/npc-event";
 import type {
   CreateSessionInput,
@@ -235,8 +241,73 @@ export function buildStoryPlanPatch(
   return p;
 }
 
+const ATRIBUTO_KEYS = ["for", "des", "con", "int", "sab", "car"] as const;
+
+/** Aceita perícias no formato antigo (string[]) ou novo ({nome, atributo?, bonus}[]). */
+function normalizeNpcSkills(raw: any): NpcStats["pericias"] {
+  if (!Array.isArray(raw)) return undefined;
+  const list = raw.map((p: any) => {
+    if (typeof p === "string") return { nome: p, bonus: 0 };
+    const atributo = ATRIBUTO_KEYS.includes(p.atributo) ? p.atributo : undefined;
+    return {
+      nome: String(p.nome ?? ""),
+      atributo,
+      bonus: Number(p.bonus ?? 0),
+    };
+  });
+  return list.length ? list : undefined;
+}
+
+/** Aceita habilidades no formato antigo (string[]) ou novo ({nome, efeito?}[]). */
+function normalizeNpcAbilities(raw: any): NpcStats["habilidades"] {
+  if (!Array.isArray(raw)) return undefined;
+  const list = raw.map((h: any) =>
+    typeof h === "string"
+      ? { nome: h }
+      : { nome: String(h.nome ?? ""), efeito: h.efeito ? String(h.efeito) : undefined },
+  );
+  return list.length ? list : undefined;
+}
+
+/** Normaliza um teste de resistência ({atributo?, cd?, sucesso?, falha?}) ou undefined se vazio. */
+function normalizeNpcSavingThrow(raw: any): NpcSavingThrow | undefined {
+  if (!raw) return undefined;
+  const atributo = ATRIBUTO_KEYS.includes(raw.atributo) ? raw.atributo : undefined;
+  const cd = raw.cd !== undefined ? Number(raw.cd) : undefined;
+  const sucesso = raw.sucesso ? String(raw.sucesso) : undefined;
+  const falha = raw.falha ? String(raw.falha) : undefined;
+  if (!atributo && cd === undefined && !sucesso && !falha) return undefined;
+  return { atributo, cd, sucesso, falha };
+}
+
+/** Normaliza magias ({nome, tipo?, area?, resistencia?, efeito?}[]). */
+function normalizeNpcSpells(raw: any): NpcStats["magias"] {
+  if (!Array.isArray(raw)) return undefined;
+  const list = raw.map((m: any) => ({
+    nome: String(m.nome ?? ""),
+    tipo: m.tipo ? String(m.tipo) : undefined,
+    area: m.area ? String(m.area) : undefined,
+    resistencia: normalizeNpcSavingThrow(m.resistencia),
+    efeito: m.efeito ? String(m.efeito) : undefined,
+  }));
+  return list.length ? list : undefined;
+}
+
+/** Aceita dano de ataque no formato antigo (string livre) ou novo (lista de {dado, tipo?}). */
+function normalizeNpcDamage(raw: any): NpcAttack["damage"] {
+  if (!raw) return undefined;
+  if (typeof raw === "string") return raw ? [{ dado: raw }] : undefined;
+  if (!Array.isArray(raw)) return undefined;
+  const list = raw.map((d: any) =>
+    typeof d === "string"
+      ? { dado: d }
+      : { dado: String(d.dado ?? ""), tipo: d.tipo ? String(d.tipo) : undefined },
+  );
+  return list.length ? list : undefined;
+}
+
 /** Normaliza a ficha resumida (Tormenta) ou undefined se vazia. */
-function normalizeNpcStats(raw: any): NpcStats | undefined {
+export function normalizeNpcStats(raw: any): NpcStats | undefined {
   if (!raw || raw.pv === undefined) return undefined;
   return {
     classOrType: String(raw.classOrType ?? ""),
@@ -246,6 +317,9 @@ function normalizeNpcStats(raw: any): NpcStats | undefined {
     defesa: Number(raw.defesa ?? 0),
     resistencias: Array.isArray(raw.resistencias)
       ? raw.resistencias.map(String)
+      : undefined,
+    imunidades: Array.isArray(raw.imunidades)
+      ? raw.imunidades.map(String)
       : undefined,
     atributos: raw.atributos
       ? {
@@ -261,13 +335,13 @@ function normalizeNpcStats(raw: any): NpcStats | undefined {
       ? raw.ataques.map((a: any) => ({
           name: String(a.name ?? ""),
           bonus: a.bonus ? String(a.bonus) : undefined,
-          damage: a.damage ? String(a.damage) : undefined,
+          damage: normalizeNpcDamage(a.damage),
+          critico: a.critico ? String(a.critico) : undefined,
         }))
       : undefined,
-    pericias: Array.isArray(raw.pericias) ? raw.pericias.map(String) : undefined,
-    habilidades: Array.isArray(raw.habilidades)
-      ? raw.habilidades.map(String)
-      : undefined,
+    pericias: normalizeNpcSkills(raw.pericias),
+    habilidades: normalizeNpcAbilities(raw.habilidades),
+    magias: normalizeNpcSpells(raw.magias),
   };
 }
 

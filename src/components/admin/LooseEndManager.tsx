@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
+  CheckboxOption,
   Eyebrow,
   Field,
   Panel,
@@ -174,14 +175,12 @@ export function LooseEndManager() {
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
-          <label className="flex items-center gap-2 text-sm text-guild-gold">
-            <input
-              type="checkbox"
-              checked={form.resolved}
-              onChange={(e) => setForm({ ...form, resolved: e.target.checked })}
-            />
+          <CheckboxOption
+            checked={form.resolved}
+            onChange={() => setForm({ ...form, resolved: !form.resolved })}
+          >
             Resolvido
-          </label>
+          </CheckboxOption>
         </Panel>
 
         {error ? <Alert tone="error">{error}</Alert> : null}

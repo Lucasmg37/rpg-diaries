@@ -2,6 +2,8 @@ import type { NpcSnapshot } from "./npc-event";
 
 export type NpcKind = "npc" | "boss";
 
+export type AtributoKey = "for" | "des" | "con" | "int" | "sab" | "car";
+
 export interface NpcAttributes {
   for: number;
   des: number;
@@ -11,10 +13,47 @@ export interface NpcAttributes {
   car: number;
 }
 
+/** Um componente de dano de um ataque — permite somar tipos distintos (ex.: 1d6 cortante + 1d6 ácido). */
+export interface NpcDamagePart {
+  dado: string;
+  tipo?: string;
+}
+
 export interface NpcAttack {
   name: string;
   bonus?: string;
-  damage?: string;
+  damage?: NpcDamagePart[];
+  critico?: string;
+}
+
+/** Perícia com o bônus já calculado e o atributo associado (estilo Tormenta: bônus = treino + atributo). */
+export interface NpcSkill {
+  nome: string;
+  atributo?: AtributoKey;
+  bonus: number;
+}
+
+/** Habilidade especial com o impacto/dano que ela causa (ex.: "Falha em Fortitude: 1d6 de dano e atordoado"). */
+export interface NpcAbility {
+  nome: string;
+  efeito?: string;
+}
+
+/** Teste de resistência: o atributo testado, a CD e a consequência de cada resultado. */
+export interface NpcSavingThrow {
+  atributo?: AtributoKey;
+  cd?: number;
+  sucesso?: string;
+  falha?: string;
+}
+
+/** Magia com tipo (escola), área de efeito e a forma de esquivar (teste de resistência). */
+export interface NpcSpell {
+  nome: string;
+  tipo?: string;
+  area?: string;
+  resistencia?: NpcSavingThrow;
+  efeito?: string;
 }
 
 /** Ficha resumida no estilo Tormenta — só o necessário pra consulta rápida na mesa. */
@@ -25,10 +64,12 @@ export interface NpcStats {
   pm?: number;
   defesa: number;
   resistencias?: string[];
+  imunidades?: string[];
   atributos?: NpcAttributes;
   ataques?: NpcAttack[];
-  pericias?: string[];
-  habilidades?: string[];
+  pericias?: NpcSkill[];
+  habilidades?: NpcAbility[];
+  magias?: NpcSpell[];
 }
 
 /**

@@ -446,6 +446,7 @@ const npcStatsSchema = {
     pm: { type: "number" },
     defesa: { type: "number" },
     resistencias: { type: "array", items: { type: "string" } },
+    imunidades: { type: "array", items: { type: "string" } },
     atributos: {
       type: "object",
       properties: {
@@ -464,13 +465,74 @@ const npcStatsSchema = {
         properties: {
           name: { type: "string" },
           bonus: { type: "string" },
-          damage: { type: "string" },
+          damage: {
+            type: "array",
+            description:
+              "Componentes de dano somados (ex.: 1d6 cortante + 1d6 ácido).",
+            items: {
+              type: "object",
+              properties: {
+                dado: { type: "string" },
+                tipo: { type: "string" },
+              },
+              required: ["dado"],
+            },
+          },
+          critico: { type: "string" },
         },
         required: ["name"],
       },
     },
-    pericias: { type: "array", items: { type: "string" } },
-    habilidades: { type: "array", items: { type: "string" } },
+    pericias: {
+      type: "array",
+      description: "Bônus já calculado (treino + atributo), com o atributo de referência.",
+      items: {
+        type: "object",
+        properties: {
+          nome: { type: "string" },
+          atributo: { type: "string", enum: ["for", "des", "con", "int", "sab", "car"] },
+          bonus: { type: "number" },
+        },
+        required: ["nome", "bonus"],
+      },
+    },
+    habilidades: {
+      type: "array",
+      description: "Habilidades especiais com o impacto/dano que causam, quando aplicável.",
+      items: {
+        type: "object",
+        properties: {
+          nome: { type: "string" },
+          efeito: { type: "string" },
+        },
+        required: ["nome"],
+      },
+    },
+    magias: {
+      type: "array",
+      description:
+        "Magias com tipo (escola), área de efeito e a forma de esquivar (teste de resistência).",
+      items: {
+        type: "object",
+        properties: {
+          nome: { type: "string" },
+          tipo: { type: "string", description: "Escola/tipo da magia (ex.: Evocação)." },
+          area: { type: "string", description: "Forma e alcance da área de efeito (ex.: Cone 9m)." },
+          resistencia: {
+            type: "object",
+            description: "Teste de resistência que define a forma de esquivar da magia.",
+            properties: {
+              atributo: { type: "string", enum: ["for", "des", "con", "int", "sab", "car"] },
+              cd: { type: "number" },
+              sucesso: { type: "string", description: "Efeito se o teste passar." },
+              falha: { type: "string", description: "Efeito se o teste falhar." },
+            },
+          },
+          efeito: { type: "string", description: "Efeito/dano geral da magia." },
+        },
+        required: ["nome"],
+      },
+    },
   },
   required: ["classOrType", "pv", "defesa"],
 };

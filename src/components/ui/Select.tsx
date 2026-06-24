@@ -22,7 +22,7 @@ export function Select({
       </label>
       <select
         id={id}
-        className={`mt-1 w-full rounded-md border border-guild-border bg-guild-bg1/60 px-3 py-2 text-guild-gold outline-none focus:border-guild-goldsoft ${className}`}
+        className={`mt-1 h-[42px] w-full appearance-none rounded-md border border-guild-border bg-guild-bg1/60 px-3 py-2 text-guild-gold outline-none focus:border-guild-goldsoft ${className}`}
         {...props}
       >
         {children}

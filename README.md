@@ -119,9 +119,37 @@ mão.
 - `Npc` (`core/entities/npc.ts`): `kind` (`npc`/`boss`), `description`
   (pública — personalidade/história), `masterNotes?` (sigiloso, nunca exposto
   fora da área logada/MCP autenticado), `stats?` (ficha resumida estilo
-  Tormenta — `classOrType`, `pv`, `pm`, `defesa`, `resistencias`, `atributos`,
-  `ataques`, `pericias`, `habilidades`, pensada para consulta rápida durante o
-  combate) e `sheetUrl?`.
+  Tormenta, pensada para consulta rápida durante o combate — **idêntica para
+  NPCs e Bosses**, não é um campo exclusivo de Boss) e `sheetUrl?`.
+- `NpcStats`: `classOrType`, `pv`, `pm?`, `defesa`, `resistencias?: string[]`,
+  `imunidades?: string[]`, `atributos?: NpcAttributes` (`for/des/con/int/sab/car`).
+  - `pericias?: NpcSkill[]` — `{ nome, atributo?, bonus }`: o bônus já vem
+    calculado (treino + atributo, estilo Tormenta); `atributo` é só a
+    referência exibida entre parênteses (ex. "Furtividade +5 (Des)").
+  - `habilidades?: NpcAbility[]` — `{ nome, efeito? }`: `efeito` descreve o
+    impacto/dano mecânico da habilidade em texto livre (ex. "Falha em
+    Fortitude: 1d6 de dano e atordoado"), exibido tanto no admin quanto na
+    ficha pública — é informação de jogo, não segredo de mestre.
+  - `ataques?: NpcAttack[]` — `{ name, bonus?, damage?: NpcDamagePart[], critico? }`:
+    `damage` é uma lista de componentes (`{ dado, tipo? }`) para somar tipos
+    distintos no mesmo golpe (ex.: `1d6` cortante + `1d6` ácido). Formatação
+    de exibição centralizada em `lib/npc-view.ts#formatNpcDamage`/
+    `#formatNpcSkill`.
+  - `magias?: NpcSpell[]` — `{ nome, tipo?, area?, resistencia?: NpcSavingThrow, efeito? }`:
+    `tipo` é a escola/categoria da magia (ex. "Evocação"), `area` descreve a
+    forma e alcance do efeito (ex. "Cone 9m"), e `resistencia` é o teste que
+    define a forma de esquivar — `{ atributo?, cd?, sucesso?, falha? }` (ex.:
+    Fortitude CD 16; falha: "1d6 de dano e atordoado"). `efeito` é o
+    dano/impacto geral em texto livre. `NpcSavingThrow` é o mesmo formato
+    usado em qualquer teste de resistência da ficha. Exibido tanto no admin
+    quanto na ficha pública (`lib/npc-view.ts#formatNpcSavingThrow`).
+  - Compatibilidade: `normalizeNpcStats`/`normalizeNpcSkills`/
+    `normalizeNpcAbilities`/`normalizeNpcDamage`/`normalizeNpcSpells`
+    (`lib/admin-serializers.ts`) aceitam o formato antigo (perícias/habilidades
+    como `string[]`, dano como `string`) e convertem para o formato
+    estruturado atual — não há migração de dados, a normalização acontece em
+    runtime na leitura (inclusive em `adapters/firestore/firestore-mappers.ts#mapNpc`,
+    para documentos antigos já persistidos) e na escrita.
 - `NpcEvent` (`core/entities/npc-event.ts`): união discriminada por `type`
   (`status_change`, `appearance`, `item_gained`, `item_lost`, `relationship`,
   `note`). Append-only, com retcon (`retconNpcEvent`) no mesmo esquema de

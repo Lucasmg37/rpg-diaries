@@ -11,6 +11,7 @@ import type { LooseEnd } from "@/core/entities/loose-end";
 import type { Npc } from "@/core/entities/npc";
 import type { Session } from "@/core/entities/session";
 import type { StoryNote, StoryPlan } from "@/core/entities/story-plan";
+import { normalizeNpcStats } from "@/lib/admin-serializers";
 
 /** Converte Timestamp do Firestore (ou string/Date) em Date. */
 function toDate(value: unknown): Date {
@@ -100,7 +101,7 @@ export function mapNpc(snap: Snap): Npc {
     role: d.role ?? undefined,
     description: d.description ?? "",
     masterNotes: d.masterNotes ?? undefined,
-    stats: d.stats ?? undefined,
+    stats: normalizeNpcStats(d.stats),
     sheetUrl: d.sheetUrl ?? undefined,
     snapshot: d.snapshot ?? undefined,
   };

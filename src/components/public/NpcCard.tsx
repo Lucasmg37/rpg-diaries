@@ -40,6 +40,12 @@ export function NpcCard({ npc }: { npc: Npc }) {
         {npc.description}
       </p>
 
+      {npc.stats ? (
+        <p className="text-xs uppercase tracking-wide text-guild-muted">
+          {npc.stats.classOrType} · PV {npc.stats.pv} · Defesa {npc.stats.defesa}
+        </p>
+      ) : null}
+
       <span className="mt-auto font-heading text-[11px] uppercase tracking-wide text-guild-goldsoft transition-colors group-hover:text-guild-gold">
         Ver ficha →
       </span>

@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 
-import { Alert, Button, Field, Panel, Select, TextArea } from "@/components/ui";
+import {
+  Alert,
+  Button,
+  CheckboxOption,
+  Field,
+  Panel,
+  Select,
+  TextArea,
+} from "@/components/ui";
 import type { Adventurer } from "@/core/entities/adventurer";
 import type {
   AdventurerEvent,
@@ -258,17 +266,13 @@ export function AdventurerEventForm({
             </p>
             <div className="mt-1 flex flex-wrap gap-3">
               {otherAdventurers.map((a) => (
-                <label
+                <CheckboxOption
                   key={a.id}
-                  className="flex items-center gap-1.5 text-sm text-guild-muted"
+                  checked={targetIds.includes(a.id)}
+                  onChange={() => toggleTarget(a.id)}
                 >
-                  <input
-                    type="checkbox"
-                    checked={targetIds.includes(a.id)}
-                    onChange={() => toggleTarget(a.id)}
-                  />
                   {a.icon} {a.name}
-                </label>
+                </CheckboxOption>
               ))}
             </div>
           </div>

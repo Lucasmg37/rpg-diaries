@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 
-import { Alert, Button, Field, Panel, Select, TextArea } from "@/components/ui";
+import {
+  Alert,
+  Button,
+  CheckboxOption,
+  Field,
+  Panel,
+  Select,
+  TextArea,
+} from "@/components/ui";
 import type { Adventurer } from "@/core/entities/adventurer";
 import type { Npc } from "@/core/entities/npc";
 import type { NpcEvent, NpcStatus } from "@/core/entities/npc-event";
@@ -242,17 +250,13 @@ export function NpcEventForm({
             </p>
             <div className="mt-1 flex flex-wrap gap-3">
               {adventurers.map((a) => (
-                <label
+                <CheckboxOption
                   key={a.id}
-                  className="flex items-center gap-1.5 text-sm text-guild-muted"
+                  checked={extra.seenByAdventurerIds.includes(a.id)}
+                  onChange={() => toggleSeen(a.id)}
                 >
-                  <input
-                    type="checkbox"
-                    checked={extra.seenByAdventurerIds.includes(a.id)}
-                    onChange={() => toggleSeen(a.id)}
-                  />
                   {a.icon} {a.name}
-                </label>
+                </CheckboxOption>
               ))}
             </div>
           </div>
