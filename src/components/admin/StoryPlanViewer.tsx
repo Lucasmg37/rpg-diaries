@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 
 import { Alert } from "@/components/ui";
+import type { Npc } from "@/core/entities/npc";
 import type { StoryPlan } from "@/core/entities/story-plan";
-import { getStoryPlan, sendJson } from "@/lib/admin-client";
+import { getStoryPlan, listAdminNpcs, sendJson } from "@/lib/admin-client";
 
 import { LiveNotesPanel } from "./LiveNotesPanel";
 import { StoryPlanDocument } from "./StoryPlanDocument";
@@ -17,6 +18,7 @@ export function StoryPlanViewer({
   adventureId: string;
 }) {
   const [plan, setPlan] = useState<StoryPlan | null>(null);
+  const [npcs, setNpcs] = useState<Npc[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -24,6 +26,12 @@ export function StoryPlanViewer({
       .then(setPlan)
       .catch((e) => setError((e as Error).message));
   }, [adventureId, storyPlanId]);
+
+  useEffect(() => {
+    listAdminNpcs(adventureId)
+      .then(setNpcs)
+      .catch((e) => setError((e as Error).message));
+  }, [adventureId]);
 
   async function handleAddNote(body: string, sceneId?: string) {
     const updated = await sendJson<StoryPlan>(
@@ -42,7 +50,7 @@ export function StoryPlanViewer({
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <StoryPlanDocument plan={plan} />
+      <StoryPlanDocument plan={plan} npcs={npcs} />
       <LiveNotesPanel
         scenes={plan.scenes}
         notes={plan.liveNotes}

@@ -43,6 +43,19 @@ const PARTY_STATES: Array<{ label: string; cls: string; badge: string }> = [
   { label: "new", cls: "border-guild-green bg-guild-green/10", badge: "Novo membro" },
 ];
 
+// Estados de status de NPC/Boss (NpcStatus, projetado pela timeline de NpcEvent).
+const NPC_STATES: Array<{
+  label: string;
+  pillColor: string;
+  opacity?: boolean;
+}> = [
+  { label: "alive", pillColor: colors.green },
+  { label: "dead", pillColor: colors.red, opacity: true },
+  { label: "revived", pillColor: colors.green },
+  { label: "missing", pillColor: colors.red },
+  { label: "unknown", pillColor: colors.red },
+];
+
 export default function DesignSystemPage() {
   return (
     <div className="space-y-12">
@@ -265,6 +278,36 @@ export default function DesignSystemPage() {
               <span className="mt-2 text-[10px] uppercase tracking-wide text-guild-muted">
                 .{state.label}
               </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ESTADOS DE NPC/BOSS */}
+      <section className="space-y-5">
+        <SectionHeading eyebrow="Componentes" title="Estados de NPC/Boss" />
+        <p className="text-center text-xs text-guild-muted">
+          Status projetado pela timeline de <code>NpcEvent</code> — exibido em{" "}
+          <code>NpcCard</code>, <code>NpcDetail</code> e nas pílulas do{" "}
+          <code>StoryPlanDocument</code>.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {NPC_STATES.map((state) => (
+            <div
+              key={state.label}
+              className={`flex flex-col items-center rounded-md border border-guild-border bg-guild-bg2/60 p-4 text-center ${
+                state.opacity ? "opacity-60" : ""
+              }`}
+            >
+              <span className="text-2xl" aria-hidden>
+                {state.label === "alive" || state.label === "revived" ? "👹" : "🧙"}
+              </span>
+              <span className="mt-2 font-heading text-sm font-semibold text-guild-gold">
+                NPC/Boss
+              </span>
+              <Pill color={state.pillColor} className="mt-2">
+                {state.label}
+              </Pill>
             </div>
           ))}
         </div>

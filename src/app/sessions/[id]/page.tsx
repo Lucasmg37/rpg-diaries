@@ -2,13 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { LooseEndTag } from "@/components/public/LooseEndTag";
+import { NpcCard } from "@/components/public/NpcCard";
 import { PartyCard } from "@/components/public/PartyCard";
 import { TagBadge } from "@/components/public/TagBadge";
 import { TimelineEntryItem } from "@/components/public/TimelineEntryItem";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Quote } from "@/components/ui/Quote";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { getPublicMasterGuild } from "@/lib/guild-data";
+import { getPublicMasterGuild, getPublicNpcRoster } from "@/lib/guild-data";
 
 export const dynamic = "force-static";
 
@@ -30,6 +31,10 @@ export default async function SessionPage({
   const owner = adventures.find((a) => a.sessions.some((s) => s.id === id));
   const session = owner?.sessions.find((s) => s.id === id);
   if (!owner || !session) notFound();
+
+  const sessionNpcs = (await getPublicNpcRoster(owner.adventure.id)).filter(
+    (npc) => npc.snapshot?.appearedInSessionIds.includes(session.id),
+  );
 
   return (
     <div className="space-y-10">
@@ -90,6 +95,18 @@ export default async function SessionPage({
                 />
               ))}
             </ol>
+          </div>
+        </section>
+      ) : null}
+
+      {/* NPCs e Bosses presentes */}
+      {sessionNpcs.length > 0 ? (
+        <section className="space-y-4">
+          <SectionHeading title="NPCs & Bosses" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            {sessionNpcs.map((npc) => (
+              <NpcCard key={npc.id} npc={npc} />
+            ))}
           </div>
         </section>
       ) : null}

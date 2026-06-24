@@ -6,39 +6,44 @@ Firestore via _adapters_.
 
 > **Estado atual:** Fases 1–6 implementadas — domínio, integração Firestore,
 > páginas públicas (SSG), autenticação do Mestre, área de gestão, deploy hook,
-> servidor MCP e roteiros do mestre com notas ao vivo. Em andamento: migração
-> do histórico de aventureiros para **event sourcing** (ver seção própria
-> abaixo). Pendências em `TODO.md`.
+> servidor MCP e roteiros do mestre com notas ao vivo. Concluído: migração do
+> histórico de aventureiros para **event sourcing** e entidade de **NPCs &
+> Bosses** (mesmo padrão de event sourcing, ver seções próprias abaixo).
+> Pendências em `TODO.md`.
 
 ## Arquitetura
 
 ```
 src/
   core/            # domínio puro — NÃO importa Firestore
-    entities/      # Guild, Adventure, Session, Adventurer, AdventurerEvent, LooseEnd, StoryPlan + views
-    ports/         # interfaces de repositório (inclui AdventurerEventRepository)
+    entities/      # Guild, Adventure, Session, Adventurer, AdventurerEvent, Npc, NpcEvent, LooseEnd, StoryPlan + views
+    ports/         # interfaces de repositório (inclui AdventurerEventRepository, NpcRepository, NpcEventRepository)
     usecases/      # getFullGuild/Adventure/Session, create/update*, projectSnapshot,
                     # appendAdventurerEvent/rebuildSnapshot, getAdventurerWithTimeline,
-                    # deriveSessionBadge, get/create/update StoryPlan, addStoryNote
+                    # deriveSessionBadge, get/create/update StoryPlan, addStoryNote,
+                    # createNpc/updateNpc, appendNpcEvent/retconNpcEvent/projectNpcSnapshot,
+                    # getNpcWithTimeline, markNpcSeenByAdventurers, getAdventureNpcRoster
   adapters/
     in-memory/     # adapter em memória (Fase 1 / fallback de dev)
     firestore/     # adapter Firestore (Admin SDK), um repository por entidade
-                    # (adventurerEvents é subcoleção por aventura, não top-level)
+                    # (adventurerEvents/npcEvents são subcoleções por aventura, não top-level)
     config/        # repository-factory (ÚNICO ponto que decide o adapter) + master-config
   app/
-    (público)         # páginas SSG: /, /adventures/[slug], /sessions/[id], /adventurers/[id]
+    (público)         # páginas SSG: /, /adventures/[slug], /sessions/[id], /adventurers/[id], /npcs/[id]
     admin/            # área de gestão (client-gated por sessão) — dashboard, login, management/*
-                       # (inclui management/adventurers/[id] — perfil + timeline + form de evento)
+                       # (inclui management/adventurers/[id] e management/npcs/[id] — perfil + timeline + form de evento)
     story-plans/[id]  # visualizador do roteiro do mestre — sigiloso, gated no servidor (cookie + JWT)
     api/admin/        # rotas de gestão (sessions, adventurers, adventurers/[id]/events, loose-ends,
-                       # story-plans, publish) — sessions e story-plans com DELETE
+                       # story-plans, npcs, npcs/[id]/events, publish) — sessions, story-plans e npcs com DELETE
     api/mcp/          # servidor MCP (JSON-RPC 2.0)
   components/
-    public/           # TagBadge, PartyCard, TimelineEntryItem, AdventurerCard, AdventurerTimeline, LooseEndCard
+    public/           # TagBadge, PartyCard, TimelineEntryItem, AdventurerCard, AdventurerTimeline,
+                       # NpcCard, NpcTimeline, LooseEndCard
     admin/            # SessionForm, AdventurerManager, AdventurerDetail, AdventurerEventForm,
-                       # AdventurerTimeline, LooseEndManager, StoryPlanManager/Document/Viewer, LiveNotesPanel
+                       # AdventurerTimeline, NpcManager, NpcDetail, NpcEventForm, NpcTimeline,
+                       # LooseEndManager, StoryPlanManager/Document/Viewer, LiveNotesPanel
     ui/               # design system (Panel, Callout, Pill, Eyebrow, Stat, Field, ConfirmDialog, ...) — ver /design-system
-  lib/             # sample-data, guild-data (loader cacheado), jwt, auth-middleware, admin-client/serializers
+  lib/             # sample-data, guild-data (loader cacheado), npc-view, jwt, auth-middleware, admin-client/serializers
 scripts/
   demo-phase1.ts                  # demonstração do domínio em memória
   seed.ts                         # popula o Firestore com os dados de exemplo
@@ -104,6 +109,53 @@ eventos imutáveis**. Isso elimina a classe de bug em que o nível ficava
   `firestore.indexes.json` (+ `firebase.json`). Deploy manual:
   `firebase use <project> && firebase deploy --only firestore:indexes`.
 
+## NPCs & Bosses
+
+Personagens não-jogáveis (NPCs comuns e Bosses) seguem o **mesmo padrão de
+event sourcing** dos aventureiros: identidade fixa (`Npc`) + timeline
+imutável de eventos (`NpcEvent`) + `NpcSnapshot` derivado, nunca editado à
+mão.
+
+- `Npc` (`core/entities/npc.ts`): `kind` (`npc`/`boss`), `description`
+  (pública — personalidade/história), `masterNotes?` (sigiloso, nunca exposto
+  fora da área logada/MCP autenticado), `stats?` (ficha resumida estilo
+  Tormenta — `classOrType`, `pv`, `pm`, `defesa`, `resistencias`, `atributos`,
+  `ataques`, `pericias`, `habilidades`, pensada para consulta rápida durante o
+  combate) e `sheetUrl?`.
+- `NpcEvent` (`core/entities/npc-event.ts`): união discriminada por `type`
+  (`status_change`, `appearance`, `item_gained`, `item_lost`, `relationship`,
+  `note`). Append-only, com retcon (`retconNpcEvent`) no mesmo esquema de
+  `retconAdventurerEvent`.
+  - `status_change` move `NpcStatus` (`alive` → `dead` → `revived` →
+    `missing` → `unknown`).
+  - `appearance` registra `sessionId` + `seenByAdventurerIds[]` — é o que
+    libera a ficha pública do NPC: só quem o "viu" (e só sessões onde ele
+    apareceu) entram em `NpcSnapshot.seenByAdventurerIds`/
+    `appearedInSessionIds`.
+- `createNpc` grava, na criação, um evento `status_change` automático
+  (`unknown` → `alive`, `visibility: "master"`) — todo NPC tem `snapshot`
+  desde o primeiro instante, igual ao `joined` do Adventurer.
+- Vínculo com Session/StoryPlan: `Session.npcIds?: string[]` e
+  `Scene.npcIds?: string[]` (StoryPlan) são listas simples que o mestre marca
+  manualmente nos formulários (`SessionForm`/`StoryPlanManager`) — servem
+  para planejamento ("quem pode aparecer aqui"). A fonte de verdade de quem
+  **de fato** apareceu e foi visto é o evento `appearance` na timeline do
+  NPC, gravado via `markNpcSeenByAdventurers` (usecase) / `markNpcSeen`
+  (MCP) — normalmente disparado quando o mestre confirma a cena na mesa.
+- Visibilidade pública: a home/aventura/sessão só listam (e só geram página
+  estática para) NPCs com `appearedInSessionIds` não vazio
+  (`getPublicNpcRoster`/`lib/npc-view.ts#npcHasAppeared`) — um NPC cadastrado
+  mas nunca apresentado é só preparo do mestre, invisível ao público. A
+  ficha pública (`/npcs/[id]`) nunca expõe `masterNotes` nem eventos
+  `visibility: "master"`.
+- Modo combate: `/admin/management/npcs/[id]` (`NpcDetail`) renderiza
+  `stats` (PV, PM, Defesa, resistências, ataques) num painel compacto para
+  consulta rápida durante a mesa, além da ficha completa e da timeline com
+  o botão "Corrigir" (retcon).
+- Índices compostos do Firestore para `npcEvents` (`npcId` combinado com
+  `visibility`/`sessionId`/`arcId`) estão declarados em
+  `firestore.indexes.json`, junto aos de `adventurerEvents`.
+
 ## Setup
 
 ```bash
@@ -167,6 +219,13 @@ além do `content` textual):
 | `retconAdventurerEvent(adventureId, targetEventId, …)` | escrita (corrige um evento já gravado) | sim |
 | `createLooseEnd(adventureId, title, …)` | escrita | sim |
 | `updateLooseEnd(adventureId, looseEndId, …)` | escrita (patch parcial) | sim |
+| `listNpcs(adventureId, kind?, status?, seenByAdventurerId?)` | leitura (sem `masterNotes` sem token) | não |
+| `getNpc(adventureId, npcId)` | leitura (NPC + timeline; sem `masterNotes`/eventos `master` sem token) | não |
+| `createNpc(adventureId, kind, name, description, …)` | escrita | sim |
+| `updateNpc(adventureId, npcId, …)` | escrita (patch parcial — status/inventário só via evento) | sim |
+| `appendNpcEvent(adventureId, npcId, type, title, …)` | escrita (timeline, append-only) | sim |
+| `markNpcSeen(adventureId, npcId, sessionId, seenByAdventurerIds)` | escrita (atalho para `appendNpcEvent` tipo `appearance`) | sim |
+| `retconNpcEvent(adventureId, npcId, targetEventId, …)` | escrita (corrige um evento já gravado) | sim |
 
 O token (`MCP_SERVICE_TOKEN`) das escritas pode ser enviado de três formas:
 
@@ -195,12 +254,16 @@ Nunca aparece nas páginas públicas nem no `getGuildData` do MCP.
 
 - **Gestão** (`/admin/management/story-plans`): cadastro/edição completos.
   Aceita `?edit=<id>&adventureId=<adv>` para abrir um roteiro específico já em
-  modo de edição (usado pelos links "Editar" do dashboard).
+  modo de edição (usado pelos links "Editar" do dashboard). Cada cena tem um
+  checklist de NPCs/Bosses previstos (`scene.npcIds`), carregado da aventura
+  selecionada.
 - **Visualizador** (`/story-plans/[id]?adventureId=<adv>`): renderiza o roteiro
   no padrão visual das páginas públicas (mesmo layout raiz, sem o menu de
   gestão), mas a rota é dinâmica e verifica a sessão do Mestre no servidor
   (cookie + JWT) antes de renderizar — redireciona para `/admin/login` se não
-  houver sessão válida. Inclui o painel de notas ao vivo (`LiveNotesPanel`).
+  houver sessão válida. Inclui o painel de notas ao vivo (`LiveNotesPanel`) e,
+  ao fim de cada cena, os NPCs/Bosses vinculados (`scene.npcIds` resolvidos
+  contra a aventura).
 - **Dashboard** (`/admin/dashboard`): lista todos os roteiros com contagem de
   cenas/notas e os atalhos "Ver" e "Editar".
 - **MCP**: roteiros do mestre não são expostos via MCP (somente leitura

@@ -63,6 +63,7 @@ Importadas via `@import` do Google Fonts em [globals.css](src/app/globals.css).
 | `TextArea` | Campo de texto multilinha rotulado |
 | `Select` | Campo de seleção rotulado |
 | `Alert` | Caixa de mensagem — tons `error` e `info` |
+| `ConfirmDialog` | Modal de confirmação para ações destrutivas — exige digitar o nome exato da entidade antes de habilitar o botão |
 
 ### Componentes de domínio que consomem as primitivas
 
@@ -70,8 +71,11 @@ Importadas via `@import` do Google Fonts em [globals.css](src/app/globals.css).
 - `TimelineEntryItem` → `Callout`
 - `PartyCard` → estados visuais por sessão (`normal` / `suspicious` / `fallen` / `new`)
 - `AdventurerCard`, páginas → `Panel`, `SectionHeading`, `Stat`, `Quote`, `Ornament`
+- `NpcCard` (`components/public`) → mesmo padrão visual do `AdventurerCard`, com pílula de status (`Pill`) e ícone próprio por `kind` (`npc`/`boss`)
+- `NpcTimeline` (pública e admin) → `Pill`/`Callout`, mesmo desenho nodal do `AdventurerTimeline`
+- `StoryPlanDocument` → resolve `scene.npcIds` em pílulas (`Pill`, cor `red` para boss / `goldsoft` para npc) ao fim de cada cena
 - `/admin/login` → `Field`, `Alert`, `Button` (primary); `/admin` (barra) → `Button` (ghost)
-- `/admin/management/*` (`SessionForm`, `AdventurerManager`, `LooseEndManager`) →
+- `/admin/management/*` (`SessionForm`, `AdventurerManager`, `LooseEndManager`, `NpcManager`, `NpcDetail`) →
   `Field`, `TextArea`, `Select`, `Button`, `Alert`, `Panel`, `Eyebrow`
 - Home (banner "dados de exemplo") → `Alert` (info)
 
@@ -85,3 +89,21 @@ Contextuais por sessão (campo `sessionState` em `SessionParticipant`):
 | `suspicious` | borda vermelha (`danger`) + fundo avermelhado |
 | `fallen` | esmaecido (opacidade) |
 | `new` | borda verde + fundo esverdeado |
+
+## Estados de NPC/Boss
+
+Status (`NpcStatus`, projetado pela timeline de `NpcEvent` — ver README) exibido
+como `Pill` em `NpcCard`/`NpcDetail`/`StoryPlanDocument`:
+
+| Status | Aparência |
+|---|---|
+| `alive` | pílula verde (`green`) |
+| `dead` | pílula vermelha (`red`), card com opacidade reduzida |
+| `revived` | pílula verde (`green`) |
+| `missing` | pílula vermelha (`red`) |
+| `unknown` | pílula vermelha (`red`) |
+
+`kind` (`npc` / `boss`) não tem cor própria — só muda o ícone padrão quando o
+NPC não define um (`🧙` para `npc`, `👹` para `boss`). Em `StoryPlanDocument`,
+a pílula de NPC vinculado a uma cena usa `red` para boss e `goldsoft` para npc,
+para destacar combates planejados.

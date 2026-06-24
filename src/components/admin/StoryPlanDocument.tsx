@@ -2,7 +2,9 @@ import type { CSSProperties } from "react";
 
 import { Callout, Eyebrow, Ornament, Panel, Pill } from "@/components/ui";
 import { colors } from "@/components/ui/tokens";
+import type { Npc } from "@/core/entities/npc";
 import type { Scene, SceneBlock, StoryPlan } from "@/core/entities/story-plan";
+import { npcKindLabel, npcStatusLabel } from "@/lib/npc-view";
 
 function renderBlock(block: SceneBlock, key: number) {
   switch (block.type) {
@@ -53,7 +55,25 @@ function renderBlock(block: SceneBlock, key: number) {
   }
 }
 
-function SceneSection({ scene }: { scene: Scene }) {
+function SceneNpcs({ npcs }: { npcs: Npc[] }) {
+  if (npcs.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2 pl-12">
+      {npcs.map((npc) => (
+        <Pill
+          key={npc.id}
+          color={npc.kind === "boss" ? colors.red : colors.goldsoft}
+          icon={npc.icon ?? (npc.kind === "boss" ? "👹" : "🧙")}
+        >
+          {npc.name} · {npcKindLabel(npc)} · {npcStatusLabel(npc)}
+        </Pill>
+      ))}
+    </div>
+  );
+}
+
+function SceneSection({ scene, npcs }: { scene: Scene; npcs: Npc[] }) {
+  const sceneNpcs = npcs.filter((n) => scene.npcIds?.includes(n.id));
   return (
     <div className="space-y-2">
       <div className="mb-3 flex items-center gap-3">
@@ -70,12 +90,20 @@ function SceneSection({ scene }: { scene: Scene }) {
       <div className="space-y-2 pl-12">
         {scene.blocks.map((block, i) => renderBlock(block, i))}
       </div>
+      <SceneNpcs npcs={sceneNpcs} />
     </div>
   );
 }
 
 /** Documento do roteiro do mestre — visualização sigilosa, no padrão visual do diário. */
-export function StoryPlanDocument({ plan }: { plan: StoryPlan }) {
+export function StoryPlanDocument({
+  plan,
+  npcs = [],
+}: {
+  plan: StoryPlan;
+  /** NPCs/Bosses da aventura, usados para resolver scene.npcIds. */
+  npcs?: Npc[];
+}) {
   return (
     <article className="space-y-6">
       <header className="border-b border-guild-border pb-5 text-center">
@@ -121,7 +149,7 @@ export function StoryPlanDocument({ plan }: { plan: StoryPlan }) {
       {plan.scenes.map((scene, i) => (
         <div key={scene.id}>
           {i > 0 ? <Ornament className="my-6" /> : null}
-          <SceneSection scene={scene} />
+          <SceneSection scene={scene} npcs={npcs} />
         </div>
       ))}
 

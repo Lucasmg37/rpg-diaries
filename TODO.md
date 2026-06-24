@@ -14,6 +14,18 @@ de eventos imutáveis + snapshot derivado — **concluída**. Detalhes em
 
 ---
 
+## NPCs & Bosses
+
+Entidade `Npc`/`NpcEvent` (mesmo padrão de event sourcing dos aventureiros),
+ports/usecases/adapters (in-memory + Firestore), tools MCP
+(`listNpcs`/`getNpc`/`createNpc`/`updateNpc`/`appendNpcEvent`/`markNpcSeen`/
+`retconNpcEvent`), UI de gestão com modo combate, ficha pública condicionada a
+aparição em sessão, e vínculo com `Session.npcIds`/`Scene.npcIds` — **concluído**.
+Detalhes em `README.md` (seção "NPCs & Bosses"). Pendências específicas em
+"Lacunas da gestão" abaixo (guarda referencial do delete, criação inline).
+
+---
+
 ## Fase 7 — Polimento e hardening
 
 - [ ] ~~Rate limiting no login~~ — **despriorizado**: auth será migrada para o Firebase
@@ -26,11 +38,12 @@ de eventos imutáveis + snapshot derivado — **concluída**. Detalhes em
 ## Lacunas da gestão
 
 - [x] **Delete** de sessão / roteiro do mestre (confirmação por digitação do nome; hard delete, sem guarda de integridade referencial ainda)
-- [ ] **Delete** de aventureiro / fio solto (mesmo padrão; falta guarda de integridade referencial — são referenciados entre si, ex.: sessão → aventureiro/fio solto)
+- [x] **Delete** de NPC/Boss (`DELETE /api/admin/npcs/[id]`) — mesma observação de guarda referencial abaixo
+- [ ] **Delete** de aventureiro / fio solto / NPC (mesmo padrão; falta guarda de integridade referencial — são referenciados entre si, ex.: sessão → aventureiro/fio solto/NPC, cena de roteiro → NPC)
 - [ ] CRUD de **aventuras** (hoje só via seed; não há `create-adventure`)
 - [ ] Reordenação de sessões/aventuras/roteiros (campo `order`/`number` editável por arraste)
-- [ ] (Opcional) Criação inline de **aventureiro** dentro do `SessionForm` (como já existe para fios soltos)
-- [ ] Confirmação antes de sair com alterações não salvas no `SessionForm` / `StoryPlanManager`
+- [ ] (Opcional) Criação inline de **aventureiro**/**NPC** dentro do `SessionForm` (como já existe para fios soltos)
+- [ ] Confirmação antes de sair com alterações não salvas no `SessionForm` / `StoryPlanManager` / `NpcManager`
 
 ---
 
