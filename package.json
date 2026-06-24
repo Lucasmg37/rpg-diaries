@@ -9,6 +9,9 @@
     "demo:phase1": "tsx scripts/demo-phase1.ts",
     "seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
     "verify:firestore": "tsx --env-file-if-exists=.env.local scripts/verify-firestore.ts",
+    "backup:firestore": "tsx --env-file-if-exists=.env.local scripts/backup-firestore.ts",
+    "test:project-snapshot": "tsx scripts/test-project-snapshot.ts",
+    "migrate:adventurer-events": "tsx --env-file-if-exists=.env.local scripts/migrate-adventurer-events.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },

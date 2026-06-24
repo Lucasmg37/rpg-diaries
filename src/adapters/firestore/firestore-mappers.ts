@@ -8,6 +8,7 @@ import type { Adventure } from "@/core/entities/adventure";
 import type { Adventurer } from "@/core/entities/adventurer";
 import type { Guild } from "@/core/entities/guild";
 import type { LooseEnd } from "@/core/entities/loose-end";
+import type { Npc } from "@/core/entities/npc";
 import type { Session } from "@/core/entities/session";
 import type { StoryNote, StoryPlan } from "@/core/entities/story-plan";
 
@@ -63,6 +64,7 @@ export function mapSession(snap: Snap): Session {
     masterNotes: d.masterNotes ?? "",
     participants: d.participants ?? [],
     looseEndIds: d.looseEndIds ?? [],
+    npcIds: d.npcIds ?? undefined,
     closing: d.closing ?? undefined,
     createdAt: toDate(d.createdAt),
     updatedAt: toDate(d.updatedAt),
@@ -78,10 +80,29 @@ export function mapAdventurer(snap: Snap): Adventurer {
     name: d.name,
     className: d.className,
     icon: d.icon,
-    level: d.level,
     background: d.background,
-    status: d.status,
+    goal: d.goal,
     sheetUrl: d.sheetUrl,
+    snapshot: d.snapshot,
+  };
+}
+
+export function mapNpc(snap: Snap): Npc {
+  const d = snap.data();
+  return {
+    id: snap.id,
+    guildId: d.guildId,
+    adventureId: d.adventureId,
+    arcId: d.arcId ?? undefined,
+    kind: d.kind,
+    name: d.name,
+    icon: d.icon ?? undefined,
+    role: d.role ?? undefined,
+    description: d.description ?? "",
+    masterNotes: d.masterNotes ?? undefined,
+    stats: d.stats ?? undefined,
+    sheetUrl: d.sheetUrl ?? undefined,
+    snapshot: d.snapshot ?? undefined,
   };
 }
 

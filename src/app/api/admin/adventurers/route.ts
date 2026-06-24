@@ -5,7 +5,7 @@ import { getRepositories } from "@/adapters/config/repository-factory";
 import { createAdventurer } from "@/core/usecases/create-adventurer";
 import { getMasterSession, unauthorized } from "@/lib/auth-middleware";
 import { apiError } from "@/lib/api-response";
-import { buildAdventurerInput } from "@/lib/admin-serializers";
+import { buildAdventurerInput, initialLevelFromBody } from "@/lib/admin-serializers";
 
 /** POST /api/admin/adventurers — cria um aventureiro. */
 export async function POST(req: NextRequest) {
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     const created = await createAdventurer(
       getRepositories(),
       buildAdventurerInput(body, getMasterGuildId()),
+      initialLevelFromBody(body),
     );
     return NextResponse.json(created, { status: 201 });
   } catch (e) {

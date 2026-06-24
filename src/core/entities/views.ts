@@ -37,6 +37,7 @@ export interface FullSession {
   masterNotes?: string;
   participants: ResolvedParticipant[];
   looseEnds: LooseEnd[];
+  npcIds?: string[];
   closing?: SessionClosing;
   createdAt: Date;
   updatedAt: Date;

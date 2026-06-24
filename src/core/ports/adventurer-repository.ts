@@ -1,7 +1,7 @@
 import type {
   Adventurer,
+  AdventurerRepositoryPatch,
   CreateAdventurerInput,
-  UpdateAdventurerInput,
 } from "../entities/adventurer";
 
 export interface AdventurerRepository {
@@ -11,6 +11,6 @@ export interface AdventurerRepository {
     guildId: string,
     adventureId: string,
     id: string,
-    patch: UpdateAdventurerInput,
+    patch: AdventurerRepositoryPatch,
   ): Promise<Adventurer>;
 }

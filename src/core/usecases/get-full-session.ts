@@ -1,8 +1,10 @@
 import type { Adventurer } from "../entities/adventurer";
+import type { AdventurerEvent } from "../entities/adventurer-event";
 import type { LooseEnd } from "../entities/loose-end";
 import type { Session } from "../entities/session";
 import type { FullSession, ResolvedParticipant } from "../entities/views";
 import type { Repositories } from "../ports";
+import { deriveSessionBadge } from "./derive-session-badge";
 
 export interface GetFullSessionOptions {
   /**
@@ -26,6 +28,7 @@ export function resolveFullSession(
   adventurers: Adventurer[],
   looseEnds: LooseEnd[],
   options: GetFullSessionOptions = {},
+  adventurerEvents: AdventurerEvent[] = [],
 ): FullSession {
   const adventurersById = new Map<string, Adventurer>(
     adventurers.map((a) => [a.id, a]),
@@ -38,10 +41,16 @@ export function resolveFullSession(
   for (const p of session.participants) {
     const adventurer = adventurersById.get(p.adventurerId);
     if (!adventurer) continue;
+
+    const ownEvents = adventurerEvents.filter(
+      (e) => e.sessionId === session.id && e.actorId === p.adventurerId,
+    );
+    const derived = deriveSessionBadge(ownEvents);
+
     participants.push({
       adventurer,
-      sessionBadge: p.sessionBadge,
-      sessionState: p.sessionState,
+      sessionBadge: derived?.badge ?? p.sessionBadge,
+      sessionState: derived?.state ?? p.sessionState,
       sessionNote: p.sessionNote,
     });
   }
@@ -67,6 +76,7 @@ export function resolveFullSession(
       : {}),
     participants,
     looseEnds: resolvedLooseEnds,
+    npcIds: session.npcIds,
     closing: session.closing,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
@@ -90,10 +100,17 @@ export async function getFullSession(
   );
   if (!session) return null;
 
-  const [adventurers, looseEnds] = await Promise.all([
+  const [adventurers, looseEnds, adventurerEvents] = await Promise.all([
     repos.adventurers.listByAdventure(guildId, adventureId),
     repos.looseEnds.listByAdventure(guildId, adventureId),
+    repos.adventurerEvents.listEvents(guildId, adventureId, { sessionId }),
   ]);
 
-  return resolveFullSession(session, adventurers, looseEnds, options);
+  return resolveFullSession(
+    session,
+    adventurers,
+    looseEnds,
+    options,
+    adventurerEvents,
+  );
 }

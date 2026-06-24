@@ -1,0 +1,53 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "adventurerEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "participantIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "visibility", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "adventurerEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "participantIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "sessionId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "adventurerEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "participantIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "arcId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "npcEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "npcId", "order": "ASCENDING" },
+        { "fieldPath": "visibility", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "npcEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "npcId", "order": "ASCENDING" },
+        { "fieldPath": "sessionId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "npcEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "npcId", "order": "ASCENDING" },
+        { "fieldPath": "arcId", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

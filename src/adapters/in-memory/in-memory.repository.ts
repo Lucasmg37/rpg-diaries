@@ -4,15 +4,21 @@ import { NotFoundError } from "@/core/errors";
 import type { Adventure } from "@/core/entities/adventure";
 import type {
   Adventurer,
+  AdventurerRepositoryPatch,
   CreateAdventurerInput,
-  UpdateAdventurerInput,
 } from "@/core/entities/adventurer";
+import type {
+  AdventurerEvent,
+  CreateAdventurerEventInput,
+} from "@/core/entities/adventurer-event";
 import type { Guild } from "@/core/entities/guild";
 import type {
   CreateLooseEndInput,
   LooseEnd,
   UpdateLooseEndInput,
 } from "@/core/entities/loose-end";
+import type { CreateNpcEventInput, NpcEvent } from "@/core/entities/npc-event";
+import type { CreateNpcInput, Npc, NpcRepositoryPatch } from "@/core/entities/npc";
 import type {
   CreateSessionInput,
   Session,
@@ -27,9 +33,14 @@ import type {
 } from "@/core/entities/story-plan";
 import type {
   AdventureRepository,
+  AdventurerEventRepository,
   AdventurerRepository,
+  EventQuery,
   GuildRepository,
   LooseEndRepository,
+  NpcEventQuery,
+  NpcEventRepository,
+  NpcRepository,
   Repositories,
   SessionRepository,
   StoryPlanRepository,
@@ -45,8 +56,11 @@ export interface InMemoryStore {
   adventures: Map<string, Adventure>;
   sessions: Map<string, Session>;
   adventurers: Map<string, Adventurer>;
+  adventurerEvents: Map<string, AdventurerEvent>;
   looseEnds: Map<string, LooseEnd>;
   storyPlans: Map<string, StoryPlan>;
+  npcs: Map<string, Npc>;
+  npcEvents: Map<string, NpcEvent>;
 }
 
 export function createEmptyStore(): InMemoryStore {
@@ -55,8 +69,11 @@ export function createEmptyStore(): InMemoryStore {
     adventures: new Map(),
     sessions: new Map(),
     adventurers: new Map(),
+    adventurerEvents: new Map(),
     looseEnds: new Map(),
     storyPlans: new Map(),
+    npcs: new Map(),
+    npcEvents: new Map(),
   };
 }
 
@@ -160,13 +177,97 @@ class InMemoryAdventurerRepository implements AdventurerRepository {
     _guildId: string,
     _adventureId: string,
     id: string,
-    patch: UpdateAdventurerInput,
+    patch: AdventurerRepositoryPatch,
   ): Promise<Adventurer> {
     const existing = this.store.adventurers.get(id);
     if (!existing) throw new NotFoundError(`Aventureiro "${id}" não encontrado.`);
     const updated: Adventurer = { ...existing, ...patch };
     this.store.adventurers.set(id, updated);
     return updated;
+  }
+}
+
+function uniqueParticipants(actorId: string, targetIds?: string[]): string[] {
+  return Array.from(new Set([actorId, ...(targetIds ?? [])]));
+}
+
+class InMemoryAdventurerEventRepository implements AdventurerEventRepository {
+  constructor(private readonly store: InMemoryStore) {}
+
+  async appendEvent(
+    _guildId: string,
+    adventureId: string,
+    input: CreateAdventurerEventInput,
+  ): Promise<AdventurerEvent> {
+    const event = {
+      ...input,
+      adventureId,
+      id: randomUUID(),
+      participantIds: uniqueParticipants(input.actorId, input.targetIds),
+      createdAt: new Date().toISOString(),
+    } as AdventurerEvent;
+    this.store.adventurerEvents.set(event.id, event);
+    return event;
+  }
+
+  async listEvents(
+    _guildId: string,
+    adventureId: string,
+    query: EventQuery = {},
+  ): Promise<AdventurerEvent[]> {
+    let events = [...this.store.adventurerEvents.values()].filter(
+      (e) => e.adventureId === adventureId,
+    );
+
+    if (query.adventurerId) {
+      events = events.filter((e) =>
+        e.participantIds.includes(query.adventurerId!),
+      );
+    }
+    if (query.sessionId) {
+      events = events.filter((e) => e.sessionId === query.sessionId);
+    }
+    if (query.arcId) {
+      events = events.filter((e) => e.arcId === query.arcId);
+    }
+    if (query.visibility) {
+      events = events.filter((e) => e.visibility === query.visibility);
+    }
+    if (query.types?.length) {
+      events = events.filter((e) => query.types!.includes(e.type));
+    }
+    if (query.since) {
+      events = events.filter((e) => e.occurredAt >= query.since!);
+    }
+    if (query.until) {
+      events = events.filter((e) => e.occurredAt <= query.until!);
+    }
+
+    return events.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+  }
+
+  async retconEvent(
+    guildId: string,
+    adventureId: string,
+    targetEventId: string,
+    correction: CreateAdventurerEventInput,
+  ): Promise<AdventurerEvent> {
+    const target = this.store.adventurerEvents.get(targetEventId);
+    if (!target) {
+      throw new NotFoundError(`Evento "${targetEventId}" não encontrado.`);
+    }
+
+    const correctionEvent = await this.appendEvent(guildId, adventureId, {
+      ...correction,
+      retcons: targetEventId,
+    });
+
+    this.store.adventurerEvents.set(targetEventId, {
+      ...target,
+      retconnedBy: correctionEvent.id,
+    });
+
+    return correctionEvent;
   }
 }
 
@@ -282,6 +383,126 @@ class InMemoryStoryPlanRepository implements StoryPlanRepository {
   }
 }
 
+class InMemoryNpcRepository implements NpcRepository {
+  constructor(private readonly store: InMemoryStore) {}
+
+  async listByAdventure(_guildId: string, adventureId: string): Promise<Npc[]> {
+    return [...this.store.npcs.values()]
+      .filter((n) => n.adventureId === adventureId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async getById(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+  ): Promise<Npc | null> {
+    return this.store.npcs.get(id) ?? null;
+  }
+
+  async create(input: CreateNpcInput): Promise<Npc> {
+    const npc: Npc = { ...input, id: randomUUID() };
+    this.store.npcs.set(npc.id, npc);
+    return npc;
+  }
+
+  async update(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    patch: NpcRepositoryPatch,
+  ): Promise<Npc> {
+    const existing = this.store.npcs.get(id);
+    if (!existing) throw new NotFoundError(`NPC "${id}" não encontrado.`);
+    const updated: Npc = { ...existing, ...patch };
+    this.store.npcs.set(id, updated);
+    return updated;
+  }
+
+  async delete(_guildId: string, _adventureId: string, id: string): Promise<void> {
+    if (!this.store.npcs.delete(id)) {
+      throw new NotFoundError(`NPC "${id}" não encontrado.`);
+    }
+  }
+}
+
+class InMemoryNpcEventRepository implements NpcEventRepository {
+  constructor(private readonly store: InMemoryStore) {}
+
+  async appendEvent(
+    _guildId: string,
+    adventureId: string,
+    input: CreateNpcEventInput,
+  ): Promise<NpcEvent> {
+    const event = {
+      ...input,
+      adventureId,
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+    } as NpcEvent;
+    this.store.npcEvents.set(event.id, event);
+    return event;
+  }
+
+  async listEvents(
+    _guildId: string,
+    adventureId: string,
+    query: NpcEventQuery = {},
+  ): Promise<NpcEvent[]> {
+    let events = [...this.store.npcEvents.values()].filter(
+      (e) => e.adventureId === adventureId,
+    );
+
+    if (query.npcId) {
+      events = events.filter((e) => e.npcId === query.npcId);
+    }
+    if (query.sessionId) {
+      events = events.filter((e) => e.sessionId === query.sessionId);
+    }
+    if (query.arcId) {
+      events = events.filter((e) => e.arcId === query.arcId);
+    }
+    if (query.visibility) {
+      events = events.filter((e) => e.visibility === query.visibility);
+    }
+    if (query.types?.length) {
+      events = events.filter((e) => query.types!.includes(e.type));
+    }
+    if (query.since) {
+      events = events.filter((e) => e.occurredAt >= query.since!);
+    }
+    if (query.until) {
+      events = events.filter((e) => e.occurredAt <= query.until!);
+    }
+
+    return events.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+  }
+
+  async retconEvent(
+    guildId: string,
+    adventureId: string,
+    targetEventId: string,
+    correction: CreateNpcEventInput,
+  ): Promise<NpcEvent> {
+    const target = this.store.npcEvents.get(targetEventId);
+    if (!target) {
+      throw new NotFoundError(`Evento "${targetEventId}" não encontrado.`);
+    }
+
+    const correctionEvent = await this.appendEvent(guildId, adventureId, {
+      ...correction,
+      retcons: targetEventId,
+    });
+
+    this.store.npcEvents.set(targetEventId, {
+      ...target,
+      retconnedBy: correctionEvent.id,
+    });
+
+    return correctionEvent;
+  }
+}
+
 /**
  * Monta o conjunto de Repositories sobre um InMemoryStore. Se nenhum store for
  * passado, cria um vazio.
@@ -294,7 +515,10 @@ export function createInMemoryRepositories(
     adventures: new InMemoryAdventureRepository(store),
     sessions: new InMemorySessionRepository(store),
     adventurers: new InMemoryAdventurerRepository(store),
+    adventurerEvents: new InMemoryAdventurerEventRepository(store),
     looseEnds: new InMemoryLooseEndRepository(store),
     storyPlans: new InMemoryStoryPlanRepository(store),
+    npcs: new InMemoryNpcRepository(store),
+    npcEvents: new InMemoryNpcEventRepository(store),
   };
 }

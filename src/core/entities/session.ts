@@ -49,6 +49,8 @@ export interface Session {
   participants: SessionParticipant[];
   /** Referência por ID aos fios soltos relevantes nesta sessão. */
   looseEndIds: string[];
+  /** Referência por ID aos NPCs/Bosses presentes nesta sessão. */
+  npcIds?: string[];
   /** Nota de encerramento (citação + linha final). */
   closing?: SessionClosing;
   createdAt: Date;

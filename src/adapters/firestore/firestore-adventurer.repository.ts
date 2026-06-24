@@ -2,8 +2,8 @@ import type { Firestore } from "firebase-admin/firestore";
 
 import type {
   Adventurer,
+  AdventurerRepositoryPatch,
   CreateAdventurerInput,
-  UpdateAdventurerInput,
 } from "@/core/entities/adventurer";
 import { NotFoundError } from "@/core/errors";
 import type { AdventurerRepository } from "@/core/ports/adventurer-repository";
@@ -33,7 +33,7 @@ export class FirestoreAdventurerRepository implements AdventurerRepository {
     guildId: string,
     adventureId: string,
     id: string,
-    patch: UpdateAdventurerInput,
+    patch: AdventurerRepositoryPatch,
   ): Promise<Adventurer> {
     const ref = adventurersCol(this.db, guildId, adventureId).doc(id);
     const snap = await ref.get();

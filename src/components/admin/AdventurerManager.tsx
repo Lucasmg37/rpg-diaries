@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -14,6 +15,7 @@ import {
 import type { Adventurer } from "@/core/entities/adventurer";
 import type { FullGuild } from "@/core/entities/views";
 import { getAdminGuild, sendJson } from "@/lib/admin-client";
+import { adventurerClassLabel, adventurerLevel, adventurerStatusLabel } from "@/lib/adventurer-view";
 
 const EMPTY = {
   name: "",
@@ -21,11 +23,12 @@ const EMPTY = {
   icon: "🧝",
   level: 1,
   background: "",
-  status: "Ativo",
+  goal: "",
   sheetUrl: "",
 };
 
 export function AdventurerManager() {
+  const router = useRouter();
   const [guild, setGuild] = useState<FullGuild | null>(null);
   const [adventureId, setAdventureId] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -60,9 +63,9 @@ export function AdventurerManager() {
       name: a.name,
       className: a.className,
       icon: a.icon,
-      level: a.level,
+      level: 1,
       background: a.background,
-      status: a.status,
+      goal: a.goal ?? "",
       sheetUrl: a.sheetUrl,
     });
   }
@@ -123,7 +126,14 @@ export function AdventurerManager() {
         {adventure?.adventurers.map((a) => (
           <div
             key={a.id}
-            className="panel flex items-center gap-3 p-4"
+            role="button"
+            tabIndex={0}
+            onClick={() => router.push(`/admin/management/adventurers/${a.id}`)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter")
+                router.push(`/admin/management/adventurers/${a.id}`);
+            }}
+            className="panel flex cursor-pointer items-center gap-3 p-4 transition-colors hover:border-guild-goldsoft"
           >
             <span className="text-xl" aria-hidden>
               {a.icon}
@@ -133,10 +143,17 @@ export function AdventurerManager() {
                 {a.name}
               </span>
               <span className="text-xs text-guild-muted">
-                {a.className} · Nv. {a.level} · {a.status}
+                {adventurerClassLabel(a)} · Nv. {adventurerLevel(a)} · {adventurerStatusLabel(a)}
               </span>
             </span>
-            <Button type="button" variant="ghost" onClick={() => startEdit(a)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                startEdit(a);
+              }}
+            >
               Editar
             </Button>
           </div>
@@ -165,21 +182,17 @@ export function AdventurerManager() {
               value={form.icon}
               onChange={(e) => setForm({ ...form, icon: e.target.value })}
             />
-            <Field
-              id="ad-level"
-              label="Nível"
-              type="number"
-              value={form.level}
-              onChange={(e) =>
-                setForm({ ...form, level: Number(e.target.value) })
-              }
-            />
-            <Field
-              id="ad-status"
-              label="Status"
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
-            />
+            {!editingId ? (
+              <Field
+                id="ad-level"
+                label="Nível inicial"
+                type="number"
+                value={form.level}
+                onChange={(e) =>
+                  setForm({ ...form, level: Number(e.target.value) })
+                }
+              />
+            ) : null}
             <Field
               id="ad-sheet"
               label="URL da ficha"
@@ -193,6 +206,13 @@ export function AdventurerManager() {
             rows={2}
             value={form.background}
             onChange={(e) => setForm({ ...form, background: e.target.value })}
+          />
+          <TextArea
+            id="ad-goal"
+            label="Objetivo"
+            rows={2}
+            value={form.goal}
+            onChange={(e) => setForm({ ...form, goal: e.target.value })}
           />
         </Panel>
 

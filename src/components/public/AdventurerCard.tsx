@@ -1,12 +1,21 @@
-import type { Adventurer } from "@/core/entities/adventurer";
+import Link from "next/link";
 
-/** Card do elenco fixo da aventura (atributos permanentes do aventureiro). */
+import type { Adventurer } from "@/core/entities/adventurer";
+import {
+  adventurerClassLabel,
+  adventurerLevel,
+  adventurerStatusLabel,
+  isAdventurerDead,
+} from "@/lib/adventurer-view";
+
+/** Card do elenco fixo da aventura — leva à página pública do aventureiro (identidade + linha do tempo). */
 export function AdventurerCard({ adventurer }: { adventurer: Adventurer }) {
-  const isDead = adventurer.status.toLowerCase() === "morto";
+  const isDead = isAdventurerDead(adventurer);
 
   return (
-    <div
-      className={`panel flex flex-col gap-3 p-5 ${isDead ? "opacity-65" : ""}`}
+    <Link
+      href={`/adventurers/${adventurer.id}`}
+      className={`panel flex flex-col gap-3 p-5 transition-colors hover:border-guild-goldsoft ${isDead ? "opacity-65" : ""}`}
     >
       <div className="flex items-center gap-3">
         <span className="text-3xl" aria-hidden>
@@ -17,7 +26,7 @@ export function AdventurerCard({ adventurer }: { adventurer: Adventurer }) {
             {adventurer.name}
           </p>
           <p className="truncate text-xs uppercase tracking-wide text-guild-muted">
-            {adventurer.className} · Nv. {adventurer.level}
+            {adventurerClassLabel(adventurer)} · Nv. {adventurerLevel(adventurer)}
           </p>
         </div>
         <span
@@ -27,7 +36,7 @@ export function AdventurerCard({ adventurer }: { adventurer: Adventurer }) {
               : "bg-guild-green/15 text-guild-green"
           }`}
         >
-          {adventurer.status}
+          {adventurerStatusLabel(adventurer)}
         </span>
       </div>
 
@@ -35,16 +44,15 @@ export function AdventurerCard({ adventurer }: { adventurer: Adventurer }) {
         {adventurer.background}
       </p>
 
-      {adventurer.sheetUrl ? (
-        <a
-          href={adventurer.sheetUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-auto font-heading text-[11px] uppercase tracking-wide text-guild-goldsoft transition-colors hover:text-guild-gold"
-        >
-          Ver ficha completa →
-        </a>
+      {adventurer.goal ? (
+        <p className="text-xs italic leading-relaxed text-guild-goldsoft">
+          🎯 {adventurer.goal}
+        </p>
       ) : null}
-    </div>
+
+      <span className="mt-auto font-heading text-[11px] uppercase tracking-wide text-guild-goldsoft transition-colors group-hover:text-guild-gold">
+        Ver linha do tempo →
+      </span>
+    </Link>
   );
 }

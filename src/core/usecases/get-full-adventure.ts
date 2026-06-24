@@ -18,14 +18,18 @@ export async function buildFullAdventure(
 ): Promise<FullAdventure> {
   const { guildId, id: adventureId } = adventure;
 
-  const [sessions, adventurers, looseEnds] = await Promise.all([
-    repos.sessions.listByAdventure(guildId, adventureId),
-    repos.adventurers.listByAdventure(guildId, adventureId),
-    repos.looseEnds.listByAdventure(guildId, adventureId),
-  ]);
+  const [sessions, adventurers, looseEnds, adventurerEvents] =
+    await Promise.all([
+      repos.sessions.listByAdventure(guildId, adventureId),
+      repos.adventurers.listByAdventure(guildId, adventureId),
+      repos.looseEnds.listByAdventure(guildId, adventureId),
+      repos.adventurerEvents.listEvents(guildId, adventureId),
+    ]);
 
   const resolvedSessions = sessions
-    .map((s) => resolveFullSession(s, adventurers, looseEnds, options))
+    .map((s) =>
+      resolveFullSession(s, adventurers, looseEnds, options, adventurerEvents),
+    )
     .sort((a, b) => a.number - b.number);
 
   return { adventure, sessions: resolvedSessions, adventurers, looseEnds };

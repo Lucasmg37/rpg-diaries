@@ -13,6 +13,7 @@ import {
   Select,
   TextArea,
 } from "@/components/ui";
+import type { Npc } from "@/core/entities/npc";
 import type {
   Scene,
   SceneBlock,
@@ -23,9 +24,11 @@ import type { FullGuild } from "@/core/entities/views";
 import {
   deleteStoryPlan,
   getAdminGuild,
+  listAdminNpcs,
   listStoryPlans,
   sendJson,
 } from "@/lib/admin-client";
+import { npcKindLabel } from "@/lib/npc-view";
 
 const BLOCK_LABELS: Record<SceneBlock["type"], string> = {
   clue: "Pista",
@@ -102,6 +105,7 @@ export function StoryPlanManager({
   const [guild, setGuild] = useState<FullGuild | null>(null);
   const [adventureId, setAdventureId] = useState("");
   const [plans, setPlans] = useState<StoryPlan[]>([]);
+  const [npcs, setNpcs] = useState<Npc[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>({ ...EMPTY_FORM });
   const [error, setError] = useState("");
@@ -128,6 +132,13 @@ export function StoryPlanManager({
 
   useEffect(() => {
     if (adventureId) loadPlans(adventureId);
+  }, [adventureId]);
+
+  useEffect(() => {
+    if (!adventureId) return;
+    listAdminNpcs(adventureId)
+      .then(setNpcs)
+      .catch((e) => setError((e as Error).message));
   }, [adventureId]);
 
   useEffect(() => {
@@ -633,6 +644,45 @@ export function StoryPlanManager({
                     ),
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-1 border-t border-guild-border/60 pt-3">
+                <span className="font-heading text-[11px] uppercase tracking-wide text-guild-muted">
+                  NPCs/Bosses previstos nesta cena
+                </span>
+                {npcs.length > 0 ? (
+                  <div className="flex flex-wrap gap-3">
+                    {npcs.map((n) => (
+                      <label
+                        key={n.id}
+                        className="flex items-center gap-1.5 text-sm text-guild-muted"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(scene.npcIds ?? []).includes(n.id)}
+                          onChange={(e) =>
+                            updateScene(sceneIdx, {
+                              npcIds: e.target.checked
+                                ? [...(scene.npcIds ?? []), n.id]
+                                : (scene.npcIds ?? []).filter((x) => x !== n.id),
+                            })
+                          }
+                        />
+                        <span aria-hidden>
+                          {n.icon ?? (n.kind === "boss" ? "👹" : "🧙")}
+                        </span>{" "}
+                        {n.name}
+                        <span className="text-xs text-guild-muted/70">
+                          ({npcKindLabel(n)})
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-guild-muted">
+                    Nenhum NPC/Boss cadastrado nesta aventura ainda.
+                  </p>
+                )}
               </div>
             </div>
           ))}

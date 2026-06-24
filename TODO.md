@@ -6,10 +6,20 @@ mestre com notas ao vivo). O que falta:
 
 ---
 
+## Event sourcing de aventureiros
+
+Migração do histórico de aventureiros de campos editados à mão para timeline
+de eventos imutáveis + snapshot derivado — **concluída**. Detalhes em
+`README.md` (seção "Histórico de aventureiros").
+
+---
+
 ## Fase 7 — Polimento e hardening
 
 - [ ] ~~Rate limiting no login~~ — **despriorizado**: auth será migrada para o Firebase
 - [ ] Regras de segurança do Firestore (deny-all; defesa em profundidade — o Admin SDK as ignora)
+- [ ] Deploy dos índices compostos do Firestore (`firestore.indexes.json` já
+  declarado; falta `firebase use <project> && firebase deploy --only firestore:indexes`)
 
 ---
 
@@ -26,7 +36,7 @@ mestre com notas ao vivo). O que falta:
 
 ## Qualidade / infra
 
-- [ ] Testes automatizados (use cases + adapters in-memory; mocks para Firestore)
+- [ ] Testes automatizados (use cases + adapters in-memory; mocks para Firestore) — hoje só há o auto-teste manual de `projectSnapshot`
 - [ ] CI (typecheck + lint + build + testes)
 
 ---

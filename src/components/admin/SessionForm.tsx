@@ -14,9 +14,16 @@ import {
   TextArea,
 } from "@/components/ui";
 import type { LooseEnd } from "@/core/entities/loose-end";
+import type { Npc } from "@/core/entities/npc";
 import type { ParticipantState } from "@/core/entities/session-participant";
 import type { FullGuild, FullSession } from "@/core/entities/views";
-import { deleteSession, getAdminGuild, sendJson } from "@/lib/admin-client";
+import {
+  deleteSession,
+  getAdminGuild,
+  listAdminNpcs,
+  sendJson,
+} from "@/lib/admin-client";
+import { npcKindLabel } from "@/lib/npc-view";
 
 const EMPTY_LOOSE_END = {
   title: "",
@@ -64,6 +71,8 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
   const [timeline, setTimeline] = useState<TimelineDraft[]>([]);
   const [participants, setParticipants] = useState<ParticipantDraft[]>([]);
   const [looseEndIds, setLooseEndIds] = useState<string[]>([]);
+  const [npcs, setNpcs] = useState<Npc[]>([]);
+  const [npcIds, setNpcIds] = useState<string[]>([]);
 
   // Fios soltos criados inline nesta sessão (ainda não vieram da guild carregada).
   const [newLooseEnds, setNewLooseEnds] = useState<LooseEnd[]>([]);
@@ -116,6 +125,7 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
               })),
             );
             setLooseEndIds(found.looseEnds.map((l) => l.id));
+            setNpcIds(found.npcIds ?? []);
           }
         } else {
           const first = g.adventures[0];
@@ -129,6 +139,14 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
       .catch((e) => setError((e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Carrega os NPCs/Bosses da aventura selecionada, para marcar presença na sessão.
+  useEffect(() => {
+    if (!adventureId) return;
+    listAdminNpcs(adventureId)
+      .then(setNpcs)
+      .catch((e) => setError((e as Error).message));
+  }, [adventureId]);
 
   // (Re)constrói os rascunhos de participantes a partir do elenco da aventura.
   useEffect(() => {
@@ -157,6 +175,11 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
       ),
     );
   }, [currentAdventure, editingSession]);
+
+  // Descarta NPCs selecionados que não pertencem mais à aventura atual.
+  useEffect(() => {
+    setNpcIds((prev) => prev.filter((id) => npcs.some((n) => n.id === id)));
+  }, [npcs]);
 
   // Fios soltos disponíveis = os da aventura + os criados inline nesta sessão.
   const looseEndOptions: LooseEnd[] = [
@@ -235,6 +258,7 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
           ...(p.sessionNote.trim() ? { sessionNote: p.sessionNote } : {}),
         })),
       looseEndIds,
+      npcIds,
       closing: closingQuote.trim()
         ? { quote: closingQuote, tagline: closingTagline }
         : undefined,
@@ -581,6 +605,45 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
             + Novo fio solto
           </Button>
         )}
+      </Panel>
+
+      {/* NPCs & Bosses presentes */}
+      <Panel className="space-y-3 p-6">
+        <Eyebrow>NPCs & Bosses presentes nesta sessão</Eyebrow>
+        {npcs.length > 0 ? (
+          npcs.map((n) => (
+            <label
+              key={n.id}
+              className="flex items-center gap-2 text-sm text-guild-muted"
+            >
+              <input
+                type="checkbox"
+                checked={npcIds.includes(n.id)}
+                onChange={(e) =>
+                  setNpcIds((prev) =>
+                    e.target.checked
+                      ? [...prev, n.id]
+                      : prev.filter((x) => x !== n.id),
+                  )
+                }
+              />
+              <span aria-hidden>{n.icon ?? (n.kind === "boss" ? "👹" : "🧙")}</span>{" "}
+              {n.name}
+              <span className="text-xs text-guild-muted/70">
+                ({npcKindLabel(n)})
+              </span>
+            </label>
+          ))
+        ) : (
+          <p className="text-sm text-guild-muted">
+            Nenhum NPC/Boss cadastrado nesta aventura ainda.
+          </p>
+        )}
+        <p className="text-xs text-guild-muted">
+          Marcar aqui só associa o NPC a esta sessão. Para registrar que os
+          aventureiros o viram (e liberar a ficha pública dele), use o evento
+          de aparição na página do NPC.
+        </p>
       </Panel>
 
       {/* Notas do mestre + encerramento */}

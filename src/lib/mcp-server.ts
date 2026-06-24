@@ -1,21 +1,41 @@
 import { getMasterGuildId } from "@/adapters/config/master-config";
 import { getRepositories } from "@/adapters/config/repository-factory";
+import type { Npc } from "@/core/entities/npc";
 import type { Session } from "@/core/entities/session";
 import { addStoryNote } from "@/core/usecases/add-story-note";
 import { createAdventurer } from "@/core/usecases/create-adventurer";
+import { appendAdventurerEvent } from "@/core/usecases/append-adventurer-event";
+import { appendNpcEvent } from "@/core/usecases/append-npc-event";
+import { retconAdventurerEvent } from "@/core/usecases/retcon-adventurer-event";
+import { retconNpcEvent } from "@/core/usecases/retcon-npc-event";
 import { createLooseEnd } from "@/core/usecases/create-loose-end";
+import { createNpc } from "@/core/usecases/create-npc";
 import { createSession } from "@/core/usecases/create-session";
 import { createStoryPlan } from "@/core/usecases/create-story-plan";
+import { getAdventureNpcRoster } from "@/core/usecases/get-adventure-npc-roster";
+import { getAdventurerWithTimeline } from "@/core/usecases/get-adventurer-timeline";
 import { getFullGuild } from "@/core/usecases/get-full-guild";
+import { getNpcWithTimeline } from "@/core/usecases/get-npc-timeline";
 import {
   getStoryPlan,
   getStoryPlans,
 } from "@/core/usecases/get-story-plans";
+import { markNpcSeenByAdventurers } from "@/core/usecases/mark-npc-seen-by-adventurers";
+import { updateAdventurer } from "@/core/usecases/update-adventurer";
+import { updateLooseEnd } from "@/core/usecases/update-loose-end";
+import { updateNpc } from "@/core/usecases/update-npc";
 import { updateSession } from "@/core/usecases/update-session";
 import { updateStoryPlan } from "@/core/usecases/update-story-plan";
 import {
+  buildAdventurerEventInput,
   buildAdventurerInput,
+  buildAdventurerPatch,
+  initialLevelFromBody,
   buildLooseEndInput,
+  buildLooseEndPatch,
+  buildNpcEventInput,
+  buildNpcInput,
+  buildNpcPatch,
   buildSessionInput,
   buildSessionPatch,
   buildStoryNoteInput,
@@ -47,6 +67,12 @@ function stripMasterNotes(session: Session) {
   return safe;
 }
 
+/** Remove masterNotes de um Npc antes de expor via MCP sem token. */
+function stripNpcMasterFields(npc: Npc) {
+  const { masterNotes: _omit, ...safe } = npc;
+  return safe;
+}
+
 interface ToolDef {
   name: string;
   description: string;
@@ -58,7 +84,13 @@ interface ToolDef {
    */
   outputSchema?: Record<string, any>;
   requiresAuth: boolean;
-  run: (args: Record<string, any>) => Promise<unknown>;
+  /**
+   * `authorized` indica se a chamada trouxe um MCP_SERVICE_TOKEN válido,
+   * mesmo em tools de leitura liberada (requiresAuth: false) — usado para
+   * decidir se campos sigilosos (masterNotes, eventos visibility: "master")
+   * entram na resposta.
+   */
+  run: (args: Record<string, any>, authorized: boolean) => Promise<unknown>;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -100,6 +132,36 @@ const closingSchema = {
   required: ["quote", "tagline"],
 };
 
+const adventurerSnapshotSchema = {
+  type: "object",
+  description:
+    "Projeção derivada da timeline de eventos — nunca editada à mão (ver appendAdventurerEvent).",
+  properties: {
+    classes: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          className: { type: "string" },
+          levels: { type: "number" },
+        },
+      },
+    },
+    totalLevel: { type: "number" },
+    status: { type: "string", enum: ["active", "dead", "missing", "retired"] },
+    state: {
+      type: "string",
+      enum: ["normal", "suspicious", "fallen", "new"],
+    },
+    sheetUrl: { type: "string" },
+    inventory: { type: "array", items: { type: "object" } },
+    titles: { type: "array", items: { type: "string" } },
+    lastSeenSessionId: { type: "string" },
+    lastEventAt: { type: "string" },
+    eventCount: { type: "number" },
+  },
+};
+
 const adventurerSchema = {
   type: "object",
   properties: {
@@ -109,10 +171,10 @@ const adventurerSchema = {
     name: { type: "string" },
     className: { type: "string" },
     icon: { type: "string" },
-    level: { type: "number" },
     background: { type: "string" },
-    status: { type: "string" },
+    goal: { type: "string" },
     sheetUrl: { type: "string" },
+    snapshot: adventurerSnapshotSchema,
   },
   required: [
     "id",
@@ -121,11 +183,27 @@ const adventurerSchema = {
     "name",
     "className",
     "icon",
-    "level",
     "background",
-    "status",
     "sheetUrl",
   ],
+};
+
+const adventurerEventSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    adventureId: { type: "string" },
+    sessionId: { type: ["string", "null"] },
+    actorId: { type: "string" },
+    targetIds: { type: "array", items: { type: "string" } },
+    participantIds: { type: "array", items: { type: "string" } },
+    occurredAt: { type: "string" },
+    type: { type: "string" },
+    title: { type: "string" },
+    body: { type: "string" },
+    visibility: { type: "string", enum: ["player", "master"] },
+  },
+  required: ["id", "adventureId", "actorId", "participantIds", "occurredAt", "type", "title"],
 };
 
 const looseEndSchema = {
@@ -357,6 +435,104 @@ const storyPlanSchema = {
   required: ["id", "guildId", "adventureId", "title", "scenes", "liveNotes"],
 };
 
+/* ---- NPC / Boss ---------------------------------------------------------- */
+
+const npcStatsSchema = {
+  type: "object",
+  properties: {
+    classOrType: { type: "string" },
+    level: { type: "number" },
+    pv: { type: "number" },
+    pm: { type: "number" },
+    defesa: { type: "number" },
+    resistencias: { type: "array", items: { type: "string" } },
+    atributos: {
+      type: "object",
+      properties: {
+        for: { type: "number" },
+        des: { type: "number" },
+        con: { type: "number" },
+        int: { type: "number" },
+        sab: { type: "number" },
+        car: { type: "number" },
+      },
+    },
+    ataques: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          bonus: { type: "string" },
+          damage: { type: "string" },
+        },
+        required: ["name"],
+      },
+    },
+    pericias: { type: "array", items: { type: "string" } },
+    habilidades: { type: "array", items: { type: "string" } },
+  },
+  required: ["classOrType", "pv", "defesa"],
+};
+
+const npcSnapshotSchema = {
+  type: "object",
+  description:
+    "Projeção derivada da timeline de NpcEvent — nunca editada à mão (ver appendNpcEvent).",
+  properties: {
+    status: {
+      type: "string",
+      enum: ["alive", "dead", "revived", "missing", "unknown"],
+    },
+    inventory: { type: "array", items: { type: "object" } },
+    seenByAdventurerIds: { type: "array", items: { type: "string" } },
+    appearedInSessionIds: { type: "array", items: { type: "string" } },
+    lastEventAt: { type: "string" },
+    eventCount: { type: "number" },
+  },
+};
+
+/** Npc sem masterNotes — uso sem MCP_SERVICE_TOKEN. */
+const npcSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    guildId: { type: "string" },
+    adventureId: { type: "string" },
+    arcId: { type: "string" },
+    kind: { type: "string", enum: ["npc", "boss"] },
+    name: { type: "string" },
+    icon: { type: "string" },
+    role: { type: "string" },
+    description: { type: "string" },
+    masterNotes: {
+      type: "string",
+      description: "Só presente quando chamado com MCP_SERVICE_TOKEN.",
+    },
+    stats: npcStatsSchema,
+    sheetUrl: { type: "string" },
+    snapshot: npcSnapshotSchema,
+  },
+  required: ["id", "guildId", "adventureId", "kind", "name", "description"],
+};
+
+const npcEventSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    adventureId: { type: "string" },
+    sessionId: { type: ["string", "null"] },
+    npcId: { type: "string" },
+    participantIds: { type: "array", items: { type: "string" } },
+    occurredAt: { type: "string" },
+    type: { type: "string" },
+    title: { type: "string" },
+    body: { type: "string" },
+    visibility: { type: "string", enum: ["player", "master"] },
+  },
+  required: ["id", "adventureId", "npcId", "occurredAt", "type", "title"],
+};
+
 const TOOLS: ToolDef[] = [
   {
     name: "getGuildData",
@@ -441,6 +617,7 @@ const TOOLS: ToolDef[] = [
           },
         },
         looseEndIds: { type: "array", items: { type: "string" } },
+        closing: closingSchema,
       },
       required: ["adventureId", "title", "number"],
     },
@@ -473,6 +650,7 @@ const TOOLS: ToolDef[] = [
         tags: { type: "array", items: { type: "object" } },
         participants: { type: "array", items: { type: "object" } },
         looseEndIds: { type: "array", items: { type: "string" } },
+        closing: closingSchema,
       },
       required: ["sessionId"],
     },
@@ -555,7 +733,7 @@ const TOOLS: ToolDef[] = [
   {
     name: "createAdventurer",
     description:
-      "Cria um aventureiro numa aventura. Cadastrado uma vez e depois referenciado (com badge próprio) em cada sessão. Requer MCP_SERVICE_TOKEN.",
+      "Cria um aventureiro numa aventura e grava o evento `joined` que dá origem ao seu snapshot (nível/status/inventário). Cadastrado uma vez e depois referenciado (com badge próprio) em cada sessão. Não há campos de nível/status diretos — use appendAdventurerEvent (level_up, death, …) para evoluir o personagem depois de criado. Requer MCP_SERVICE_TOKEN.",
     inputSchema: {
       type: "object",
       properties: {
@@ -566,11 +744,14 @@ const TOOLS: ToolDef[] = [
           description: 'Classe do personagem (ex.: "Guerreiro").',
         },
         icon: { type: "string", description: "Emoji/ícone do aventureiro." },
-        level: { type: "number" },
+        level: {
+          type: "number",
+          description: "Nível inicial do evento `joined` (padrão 1) — não é um campo persistido na identidade.",
+        },
         background: { type: "string" },
-        status: {
+        goal: {
           type: "string",
-          description: 'Status permanente (ex.: "Ativo", "Morto"). Padrão "Ativo".',
+          description: 'Motivação pessoal do personagem (ex.: "Vingar a família").',
         },
         sheetUrl: {
           type: "string",
@@ -583,7 +764,202 @@ const TOOLS: ToolDef[] = [
     requiresAuth: true,
     run: async (args) => {
       const input = buildAdventurerInput(args, getMasterGuildId());
-      return createAdventurer(getRepositories(), input);
+      return createAdventurer(getRepositories(), input, initialLevelFromBody(args));
+    },
+  },
+  {
+    name: "appendAdventurerEvent",
+    description:
+      "Grava um evento na timeline de um aventureiro (joined, level_up, status_change, state_flag, item_gained, item_lost, relationship, injury, death, revival, title_badge, sheet_revision, story_beat) e recomputa seu snapshot (nível, status, inventário…). Eventos são append-only — não use para corrigir um evento já gravado, use retconAdventurerEvent. Para eventos cross-character (ex.: um soco), informe targetIds com os demais envolvidos; o evento aparece na timeline de todos eles. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        type: {
+          type: "string",
+          enum: [
+            "joined",
+            "level_up",
+            "status_change",
+            "state_flag",
+            "item_gained",
+            "item_lost",
+            "relationship",
+            "injury",
+            "death",
+            "revival",
+            "title_badge",
+            "sheet_revision",
+            "story_beat",
+          ],
+        },
+        actorId: {
+          type: "string",
+          description: "Aventureiro dono do evento (timeline principal).",
+        },
+        targetIds: {
+          type: "array",
+          items: { type: "string" },
+          description: "Demais aventureiros envolvidos (evento cross-character único).",
+        },
+        sessionId: {
+          type: "string",
+          description: "Sessão onde o evento ocorreu. Omitir para backstory/entre-sessões.",
+        },
+        occurredAt: {
+          type: "string",
+          description: "Timestamp ISO real. Padrão: agora.",
+        },
+        title: { type: "string" },
+        body: { type: "string" },
+        visibility: {
+          type: "string",
+          enum: ["player", "master"],
+          description: 'Padrão "player".',
+        },
+        relatedLooseEndIds: { type: "array", items: { type: "string" } },
+      },
+      required: ["adventureId", "type", "actorId", "title"],
+      description:
+        "Campos extras variam por `type` — ex.: level_up exige className/fromLevel/toLevel; item_gained exige item {id,name}; relationship exige nature; title_badge exige granted. Veja AdventurerEvent em core/entities/adventurer-event.ts.",
+    },
+    requiresAuth: true,
+    run: async (args) => {
+      const guildId = getMasterGuildId();
+      const input = buildAdventurerEventInput(args, guildId);
+      return appendAdventurerEvent(
+        getRepositories(),
+        guildId,
+        input.adventureId,
+        input,
+      );
+    },
+  },
+  {
+    name: "retconAdventurerEvent",
+    description:
+      "Corrige um evento já gravado na timeline (append-only: nunca edita/apaga o original). Grava uma correção marcada com `retcons: targetEventId`; o evento original passa a ter `retconnedBy` e é ignorado na projeção do snapshot. Mesmos campos de appendAdventurerEvent, mais `targetEventId`. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        targetEventId: {
+          type: "string",
+          description: "Id do evento a corrigir.",
+        },
+        type: {
+          type: "string",
+          enum: [
+            "joined",
+            "level_up",
+            "status_change",
+            "state_flag",
+            "item_gained",
+            "item_lost",
+            "relationship",
+            "injury",
+            "death",
+            "revival",
+            "title_badge",
+            "sheet_revision",
+            "story_beat",
+          ],
+        },
+        actorId: { type: "string" },
+        targetIds: { type: "array", items: { type: "string" } },
+        sessionId: { type: "string" },
+        occurredAt: { type: "string" },
+        title: { type: "string" },
+        body: { type: "string" },
+        visibility: { type: "string", enum: ["player", "master"] },
+        relatedLooseEndIds: { type: "array", items: { type: "string" } },
+      },
+      required: ["adventureId", "targetEventId", "type", "actorId", "title"],
+    },
+    requiresAuth: true,
+    run: async (args) => {
+      const guildId = getMasterGuildId();
+      const input = buildAdventurerEventInput(args, guildId);
+      return retconAdventurerEvent(
+        getRepositories(),
+        guildId,
+        input.adventureId,
+        String(args.targetEventId),
+        input,
+      );
+    },
+  },
+  {
+    name: "getAdventurer",
+    description:
+      "Lê um aventureiro junto com sua timeline completa de eventos (joined, level_up, death…), ordenada cronologicamente. Útil para auditar como o snapshot atual (nível, status, inventário) foi construído.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: {
+          type: "string",
+          description: "Opcional; se omitido, é resolvido percorrendo as aventuras da guild.",
+        },
+        adventurerId: { type: "string" },
+      },
+      required: ["adventurerId"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        adventurer: adventurerSchema,
+        timeline: { type: "array", items: adventurerEventSchema },
+      },
+      required: ["adventurer", "timeline"],
+    },
+    requiresAuth: false,
+    run: async (args) => {
+      const guildId = getMasterGuildId();
+      const repos = getRepositories();
+      const adventurerId = String(args.adventurerId);
+
+      let adventureId = args.adventureId ? String(args.adventureId) : "";
+      if (!adventureId) {
+        const guild = await getFullGuild(repos, guildId);
+        const owner = guild?.adventures.find((a) =>
+          a.adventurers.some((adv) => adv.id === adventurerId),
+        );
+        if (!owner) throw new Error(`Aventureiro "${adventurerId}" não encontrado.`);
+        adventureId = owner.adventure.id;
+      }
+
+      return getAdventurerWithTimeline(repos, guildId, adventureId, adventurerId);
+    },
+  },
+  {
+    name: "updateAdventurer",
+    description:
+      "Atualiza a identidade de um aventureiro (name, className, icon, background, goal, sheetUrl). Nível e status NÃO são editáveis aqui — use appendAdventurerEvent (ex.: level_up, death) para mudar o que é derivado da timeline. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        adventurerId: { type: "string" },
+        name: { type: "string" },
+        className: { type: "string" },
+        icon: { type: "string" },
+        background: { type: "string" },
+        goal: { type: "string" },
+        sheetUrl: { type: "string" },
+      },
+      required: ["adventureId", "adventurerId"],
+    },
+    outputSchema: adventurerSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const patch = buildAdventurerPatch(args);
+      return updateAdventurer(
+        getRepositories(),
+        getMasterGuildId(),
+        String(args.adventureId),
+        String(args.adventurerId),
+        patch,
+      );
     },
   },
   {
@@ -614,6 +990,37 @@ const TOOLS: ToolDef[] = [
     run: async (args) => {
       const input = buildLooseEndInput(args, getMasterGuildId());
       return createLooseEnd(getRepositories(), input);
+    },
+  },
+  {
+    name: "updateLooseEnd",
+    description:
+      "Atualiza um fio solto existente (campos parciais) — ex.: marcar `resolved: true` quando o gancho narrativo se resolve. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        looseEndId: { type: "string" },
+        title: { type: "string" },
+        category: { type: "string" },
+        description: { type: "string" },
+        color: { type: "string" },
+        icon: { type: "string" },
+        resolved: { type: "boolean" },
+      },
+      required: ["adventureId", "looseEndId"],
+    },
+    outputSchema: looseEndSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const patch = buildLooseEndPatch(args);
+      return updateLooseEnd(
+        getRepositories(),
+        getMasterGuildId(),
+        String(args.adventureId),
+        String(args.looseEndId),
+        patch,
+      );
     },
   },
   {
@@ -763,6 +1170,238 @@ const TOOLS: ToolDef[] = [
       );
     },
   },
+  {
+    name: "listNpcs",
+    description:
+      "Lista os NPCs/Bosses de uma aventura, com filtros opcionais por kind/status/seenByAdventurerId. Sem MCP_SERVICE_TOKEN, masterNotes nunca é incluída.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        kind: { type: "string", enum: ["npc", "boss"] },
+        status: {
+          type: "string",
+          enum: ["alive", "dead", "revived", "missing", "unknown"],
+        },
+        seenByAdventurerId: {
+          type: "string",
+          description: "Restringe aos NPCs já vistos por este aventureiro.",
+        },
+      },
+      required: ["adventureId"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: { npcs: { type: "array", items: npcSchema } },
+      required: ["npcs"],
+    },
+    requiresAuth: false,
+    run: async (args, authorized) => {
+      const npcs = await getAdventureNpcRoster(
+        getRepositories(),
+        getMasterGuildId(),
+        String(args.adventureId),
+        {
+          kind: args.kind,
+          status: args.status,
+          seenByAdventurerId: args.seenByAdventurerId
+            ? String(args.seenByAdventurerId)
+            : undefined,
+        },
+      );
+      return { npcs: authorized ? npcs : npcs.map(stripNpcMasterFields) };
+    },
+  },
+  {
+    name: "getNpc",
+    description:
+      "Lê um NPC/Boss junto com sua timeline de eventos. Sem MCP_SERVICE_TOKEN, masterNotes é omitida e a timeline traz só eventos visibility=player.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        npcId: { type: "string" },
+      },
+      required: ["adventureId", "npcId"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        npc: npcSchema,
+        timeline: { type: "array", items: npcEventSchema },
+      },
+      required: ["npc", "timeline"],
+    },
+    requiresAuth: false,
+    run: async (args, authorized) => {
+      const { npc, timeline } = await getNpcWithTimeline(
+        getRepositories(),
+        getMasterGuildId(),
+        String(args.adventureId),
+        String(args.npcId),
+        authorized ? undefined : "player",
+      );
+      return { npc: authorized ? npc : stripNpcMasterFields(npc), timeline };
+    },
+  },
+  {
+    name: "createNpc",
+    description:
+      "Cria um NPC/Boss numa aventura (ficha Tormenta resumida, descrição pública e masterNotes sigilosas). Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        arcId: { type: "string" },
+        kind: { type: "string", enum: ["npc", "boss"] },
+        name: { type: "string" },
+        icon: { type: "string" },
+        role: { type: "string" },
+        description: { type: "string" },
+        masterNotes: { type: "string" },
+        stats: npcStatsSchema,
+        sheetUrl: { type: "string" },
+      },
+      required: ["adventureId", "kind", "name", "description"],
+    },
+    outputSchema: npcSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const input = buildNpcInput(args, getMasterGuildId());
+      return createNpc(getRepositories(), input);
+    },
+  },
+  {
+    name: "updateNpc",
+    description:
+      "Atualiza a identidade de um NPC/Boss (campos parciais: name, role, description, masterNotes, stats, sheetUrl...). Status/inventário/aparições NÃO são editáveis aqui — use appendNpcEvent/markNpcSeen. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        npcId: { type: "string" },
+        arcId: { type: "string" },
+        kind: { type: "string", enum: ["npc", "boss"] },
+        name: { type: "string" },
+        icon: { type: "string" },
+        role: { type: "string" },
+        description: { type: "string" },
+        masterNotes: { type: "string" },
+        stats: npcStatsSchema,
+        sheetUrl: { type: "string" },
+      },
+      required: ["adventureId", "npcId"],
+    },
+    outputSchema: npcSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const patch = buildNpcPatch(args);
+      return updateNpc(
+        getRepositories(),
+        getMasterGuildId(),
+        String(args.adventureId),
+        String(args.npcId),
+        patch,
+      );
+    },
+  },
+  {
+    name: "appendNpcEvent",
+    description:
+      "Grava um evento na timeline de um NPC/Boss (status_change, appearance, item_gained, item_lost, relationship, note) e recomputa seu snapshot (status, inventário, aparições). Eventos são append-only — para corrigir um já gravado, use retconNpcEvent. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        npcId: { type: "string" },
+        type: {
+          type: "string",
+          enum: ["status_change", "appearance", "item_gained", "item_lost", "relationship", "note"],
+        },
+        sessionId: {
+          type: "string",
+          description: "Sessão onde o evento ocorreu. Omitir para histórico/preparação.",
+        },
+        occurredAt: { type: "string", description: "Timestamp ISO real. Padrão: agora." },
+        title: { type: "string" },
+        body: { type: "string" },
+        visibility: { type: "string", enum: ["player", "master"], description: 'Padrão "player".' },
+      },
+      required: ["adventureId", "npcId", "type", "title"],
+      description:
+        "Campos extras variam por `type` — ex.: status_change exige from/to; appearance exige sessionId/seenByAdventurerIds; item_gained exige item {id,name}; relationship exige nature. Veja NpcEvent em core/entities/npc-event.ts.",
+    },
+    requiresAuth: true,
+    run: async (args) => {
+      const guildId = getMasterGuildId();
+      const input = buildNpcEventInput(args, guildId);
+      return appendNpcEvent(getRepositories(), guildId, input.adventureId, input);
+    },
+  },
+  {
+    name: "markNpcSeen",
+    description:
+      "Marca que um NPC/Boss apareceu numa sessão e foi visto por um conjunto de aventureiros — atalho para appendNpcEvent(type: appearance). É o que dá aos jogadores acesso à ficha pública do NPC. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        npcId: { type: "string" },
+        sessionId: { type: "string" },
+        seenByAdventurerIds: { type: "array", items: { type: "string" } },
+      },
+      required: ["adventureId", "npcId", "sessionId", "seenByAdventurerIds"],
+    },
+    outputSchema: npcEventSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      return markNpcSeenByAdventurers(
+        getRepositories(),
+        getMasterGuildId(),
+        String(args.adventureId),
+        String(args.npcId),
+        String(args.sessionId),
+        Array.isArray(args.seenByAdventurerIds)
+          ? args.seenByAdventurerIds.map(String)
+          : [],
+      );
+    },
+  },
+  {
+    name: "retconNpcEvent",
+    description:
+      "Corrige um evento já gravado na timeline de um NPC/Boss (append-only). Mesmos campos de appendNpcEvent, mais `targetEventId`. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adventureId: { type: "string" },
+        npcId: { type: "string" },
+        targetEventId: { type: "string", description: "Id do evento a corrigir." },
+        type: {
+          type: "string",
+          enum: ["status_change", "appearance", "item_gained", "item_lost", "relationship", "note"],
+        },
+        sessionId: { type: "string" },
+        occurredAt: { type: "string" },
+        title: { type: "string" },
+        body: { type: "string" },
+        visibility: { type: "string", enum: ["player", "master"] },
+      },
+      required: ["adventureId", "npcId", "targetEventId", "type", "title"],
+    },
+    requiresAuth: true,
+    run: async (args) => {
+      const guildId = getMasterGuildId();
+      const input = buildNpcEventInput(args, guildId);
+      return retconNpcEvent(
+        getRepositories(),
+        guildId,
+        input.adventureId,
+        String(args.targetEventId),
+        input,
+      );
+    },
+  },
 ];
 
 const TOOLS_BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
@@ -821,7 +1460,8 @@ async function handleMessage(
       if (!tool) {
         return rpcError(id, -32602, `Ferramenta "${name}" desconhecida.`);
       }
-      if (tool.requiresAuth && !isMcpWriteAuthorized(req, pathToken)) {
+      const authorized = isMcpWriteAuthorized(req, pathToken);
+      if (tool.requiresAuth && !authorized) {
         return rpcResult(id, {
           content: [
             {
@@ -833,7 +1473,7 @@ async function handleMessage(
         });
       }
       try {
-        const out = await tool.run(args);
+        const out = await tool.run(args, authorized);
         // Serializa via JSON.parse(JSON.stringify(...)) para normalizar Dates
         // em strings ISO — mesmo formato do `content` textual — e garantir que
         // `structuredContent` seja JSON puro conforme o outputSchema.

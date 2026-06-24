@@ -90,3 +90,21 @@ export const storyPlansCol = (
   guildId: string,
   adventureId: string,
 ) => adventureDoc(db, guildId, adventureId).collection("storyPlans");
+
+export const adventurerEventsCol = (
+  db: Firestore,
+  guildId: string,
+  adventureId: string,
+) => adventureDoc(db, guildId, adventureId).collection("adventurerEvents");
+
+export const npcsCol = (
+  db: Firestore,
+  guildId: string,
+  adventureId: string,
+) => adventureDoc(db, guildId, adventureId).collection("npcs");
+
+export const npcEventsCol = (
+  db: Firestore,
+  guildId: string,
+  adventureId: string,
+) => adventureDoc(db, guildId, adventureId).collection("npcEvents");

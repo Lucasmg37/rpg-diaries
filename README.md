@@ -6,34 +6,45 @@ Firestore via _adapters_.
 
 > **Estado atual:** Fases 1–6 implementadas — domínio, integração Firestore,
 > páginas públicas (SSG), autenticação do Mestre, área de gestão, deploy hook,
-> servidor MCP e roteiros do mestre com notas ao vivo. Pendências em `TODO.md`.
+> servidor MCP e roteiros do mestre com notas ao vivo. Em andamento: migração
+> do histórico de aventureiros para **event sourcing** (ver seção própria
+> abaixo). Pendências em `TODO.md`.
 
 ## Arquitetura
 
 ```
 src/
   core/            # domínio puro — NÃO importa Firestore
-    entities/      # Guild, Adventure, Session, Adventurer, LooseEnd, StoryPlan + views
-    ports/         # interfaces de repositório
-    usecases/      # getFullGuild/Adventure/Session, create/update*, get/create/update StoryPlan, addStoryNote
+    entities/      # Guild, Adventure, Session, Adventurer, AdventurerEvent, LooseEnd, StoryPlan + views
+    ports/         # interfaces de repositório (inclui AdventurerEventRepository)
+    usecases/      # getFullGuild/Adventure/Session, create/update*, projectSnapshot,
+                    # appendAdventurerEvent/rebuildSnapshot, getAdventurerWithTimeline,
+                    # deriveSessionBadge, get/create/update StoryPlan, addStoryNote
   adapters/
     in-memory/     # adapter em memória (Fase 1 / fallback de dev)
     firestore/     # adapter Firestore (Admin SDK), um repository por entidade
+                    # (adventurerEvents é subcoleção por aventura, não top-level)
     config/        # repository-factory (ÚNICO ponto que decide o adapter) + master-config
   app/
-    (público)         # páginas SSG: /, /adventures/[slug], /sessions/[id]
+    (público)         # páginas SSG: /, /adventures/[slug], /sessions/[id], /adventurers/[id]
     admin/            # área de gestão (client-gated por sessão) — dashboard, login, management/*
+                       # (inclui management/adventurers/[id] — perfil + timeline + form de evento)
     story-plans/[id]  # visualizador do roteiro do mestre — sigiloso, gated no servidor (cookie + JWT)
-    api/admin/        # rotas de gestão (sessions, adventurers, loose-ends, story-plans, publish) — sessions e story-plans com DELETE
+    api/admin/        # rotas de gestão (sessions, adventurers, adventurers/[id]/events, loose-ends,
+                       # story-plans, publish) — sessions e story-plans com DELETE
     api/mcp/          # servidor MCP (JSON-RPC 2.0)
   components/
-    public/           # TagBadge, PartyCard, TimelineEntryItem, AdventurerCard, LooseEndCard
-    admin/            # SessionForm, AdventurerManager, LooseEndManager, StoryPlanManager/Document/Viewer, LiveNotesPanel
+    public/           # TagBadge, PartyCard, TimelineEntryItem, AdventurerCard, AdventurerTimeline, LooseEndCard
+    admin/            # SessionForm, AdventurerManager, AdventurerDetail, AdventurerEventForm,
+                       # AdventurerTimeline, LooseEndManager, StoryPlanManager/Document/Viewer, LiveNotesPanel
     ui/               # design system (Panel, Callout, Pill, Eyebrow, Stat, Field, ConfirmDialog, ...) — ver /design-system
   lib/             # sample-data, guild-data (loader cacheado), jwt, auth-middleware, admin-client/serializers
 scripts/
-  demo-phase1.ts   # demonstração do domínio em memória
-  seed.ts          # popula o Firestore com os dados de exemplo
+  demo-phase1.ts                  # demonstração do domínio em memória
+  seed.ts                         # popula o Firestore com os dados de exemplo
+  backup-firestore.ts             # dump completo da árvore guilds/... para backups/*.json
+  migrate-adventurer-events.ts    # gera os eventos retroativos das Sessões 1-3 (uso único / referência)
+  test-project-snapshot.ts        # auto-teste do reducer projectSnapshot (sem framework de testes)
 ```
 
 Princípios:
@@ -44,8 +55,54 @@ Princípios:
   - credenciais do Firebase presentes → **Firestore**;
   - ausentes → **in-memory com dados de exemplo** (permite rodar tudo localmente
     sem Firestore, inclusive `npm run build`).
-- `masterNotes` é filtrado no use case (`getFullSession`) antes de chegar às
-  páginas públicas — nunca é renderizado publicamente.
+- `masterNotes` (roteiros) é filtrado no use case (`getFullSession`) antes de
+  chegar às páginas públicas — nunca é renderizado publicamente. O mesmo
+  princípio vale para eventos de aventureiro com `visibility: "master"` (ver
+  abaixo).
+
+## Histórico de aventureiros (event sourcing)
+
+O estado de um `Adventurer` (nível, status, inventário, títulos) **não é mais
+um campo editado à mão** — é uma **projeção derivada de uma timeline de
+eventos imutáveis**. Isso elimina a classe de bug em que o nível ficava
+"travado" porque alguém esquecia de atualizar um campo solto.
+
+- `Adventurer` só guarda identidade (`name`, `className`, `icon`,
+  `background`, `goal`, `sheetUrl`) + `snapshot`. **Não existem mais campos
+  `level`/`status`** no tipo nem nos documentos Firestore — corte concluído
+  (Fase 2). Use `adventurerLevel(a)`/`adventurerStatusLabel(a)`/
+  `isAdventurerDead(a)` (`lib/adventurer-view.ts`) para exibição.
+- `AdventurerEvent` (`core/entities/adventurer-event.ts`): união discriminada
+  por `type` (`joined`, `level_up`, `status_change`, `state_flag`,
+  `item_gained`, `item_lost`, `relationship`, `injury`, `death`, `revival`,
+  `title_badge`, `sheet_revision`, `story_beat`). Append-only — eventos nunca
+  são editados ou apagados; correções usam `retconAdventurerEvent` (grava um
+  novo evento marcado com `retcons: targetEventId` e marca o original com
+  `retconnedBy`, que o reducer ignora). Disponível no admin (botão "Corrigir"
+  em cada nó da timeline) e no MCP (`retconAdventurerEvent`).
+- Eventos cross-character (ex.: um soco) existem **uma única vez**, com
+  `actorId` (dono) + `targetIds` (demais envolvidos) + `participantIds`
+  (denormalizado, índice de leitura `array-contains` no Firestore).
+- `createAdventurer` grava, na criação, um evento `joined` automático (nível
+  inicial configurável, padrão 1) — todo aventureiro tem `snapshot` desde o
+  primeiro instante; não existe "aventureiro sem timeline".
+- `projectSnapshot` (`core/usecases/project-snapshot.ts`) é o reducer puro que
+  dobra a timeline de um aventureiro (eventos onde ele é `actorId`) num
+  `AdventurerSnapshot` — cache de leitura recomputado a cada
+  `appendAdventurerEvent`/`retconAdventurerEvent`, gravado em
+  `Adventurer.snapshot`.
+- `deriveSessionBadge` (`core/usecases/derive-session-badge.ts`) projeta o
+  badge/estado contextual de uma sessão (`SessionParticipant.sessionBadge`/
+  `sessionState`) a partir dos eventos daquela sessão, com fallback para o
+  texto armazenado quando não há eventos. **Decisão tomada:** os dois modos
+  coexistem permanentemente — não há plano de exigir eventos em toda sessão.
+- Visibilidade: eventos `visibility: "master"` aparecem na timeline do admin
+  (`/admin/management/adventurers/[id]`), mas são filtrados na timeline
+  pública (`/adventurers/[id]`, via `getPublicAdventurerTimeline`).
+- Índices compostos do Firestore (`participantIds` array-contains combinado
+  com `visibility`/`sessionId`/`arcId`) estão declarados em
+  `firestore.indexes.json` (+ `firebase.json`). Deploy manual:
+  `firebase use <project> && firebase deploy --only firestore:indexes`.
 
 ## Setup
 
@@ -63,6 +120,8 @@ Sem `.env.local` preenchido, o app usa os dados de exemplo in-memory.
 | `npm run demo:phase1` | Roda o domínio em memória e valida os badges contextuais por sessão (Fase 1) |
 | `npm run seed` | Popula o Firestore com os dados de exemplo (requer credenciais) (Fase 2) |
 | `npm run verify:firestore` | Lê a guild via Firestore real e valida o round-trip (Fase 2) |
+| `npm run backup:firestore` | Dump completo da árvore `guilds/...` para `backups/*.json` (não versionado) |
+| `npm run test:project-snapshot` | Auto-teste do reducer `projectSnapshot` |
 | `npm run dev` | Servidor de desenvolvimento |
 | `npm run build` | Gera as páginas estáticas (Fase 3) |
 | `npm run typecheck` | Checagem de tipos |
@@ -99,10 +158,15 @@ além do `content` textual):
 |---|---|---|
 | `getGuildData(guildId?)` | leitura (sem `masterNotes`) | não |
 | `listSessions(adventureId)` | leitura | não |
+| `getAdventurer(adventurerId, adventureId?)` | leitura (aventureiro + timeline completa) | não |
 | `createSession(adventureId, …)` | escrita | sim |
-| `updateSession(sessionId, …)` | escrita (patch parcial) | sim |
+| `updateSession(sessionId, …)` | escrita (patch parcial, inclui `closing`) | sim |
 | `createAdventurer(adventureId, name, className, …)` | escrita | sim |
+| `updateAdventurer(adventureId, adventurerId, …)` | escrita (só identidade — nível/status via evento) | sim |
+| `appendAdventurerEvent(adventureId, type, actorId, …)` | escrita (timeline, append-only) | sim |
+| `retconAdventurerEvent(adventureId, targetEventId, …)` | escrita (corrige um evento já gravado) | sim |
 | `createLooseEnd(adventureId, title, …)` | escrita | sim |
+| `updateLooseEnd(adventureId, looseEndId, …)` | escrita (patch parcial) | sim |
 
 O token (`MCP_SERVICE_TOKEN`) das escritas pode ser enviado de três formas:
 

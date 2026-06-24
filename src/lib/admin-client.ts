@@ -1,3 +1,7 @@
+import type { Adventurer } from "@/core/entities/adventurer";
+import type { AdventurerEvent } from "@/core/entities/adventurer-event";
+import type { Npc } from "@/core/entities/npc";
+import type { NpcEvent } from "@/core/entities/npc-event";
 import type { StoryPlan } from "@/core/entities/story-plan";
 import type { FullGuild } from "@/core/entities/views";
 
@@ -59,6 +63,51 @@ export async function deleteStoryPlan(
 ): Promise<void> {
   const res = await fetch(
     `/api/admin/story-plans/${id}?adventureId=${encodeURIComponent(adventureId)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `Erro ${res.status}.`);
+  }
+}
+
+/** Aventureiro + timeline completa de eventos (área logada, requer adventureId). */
+export async function getAdventurerTimeline(
+  adventureId: string,
+  adventurerId: string,
+): Promise<{ adventurer: Adventurer; timeline: AdventurerEvent[] }> {
+  const res = await fetch(
+    `/api/admin/adventurers/${adventurerId}/events?adventureId=${encodeURIComponent(adventureId)}`,
+  );
+  if (!res.ok) throw new Error("Não autorizado ou timeline indisponível.");
+  return res.json();
+}
+
+/** Lista os NPCs/Bosses de uma aventura (área logada). */
+export async function listAdminNpcs(adventureId: string): Promise<Npc[]> {
+  const res = await fetch(
+    `/api/admin/npcs?adventureId=${encodeURIComponent(adventureId)}`,
+  );
+  if (!res.ok) throw new Error("Não autorizado ou NPCs indisponíveis.");
+  return res.json();
+}
+
+/** NPC/Boss + timeline completa de eventos (área logada, requer adventureId). */
+export async function getNpcTimeline(
+  adventureId: string,
+  npcId: string,
+): Promise<{ npc: Npc; timeline: NpcEvent[] }> {
+  const res = await fetch(
+    `/api/admin/npcs/${npcId}/events?adventureId=${encodeURIComponent(adventureId)}`,
+  );
+  if (!res.ok) throw new Error("Não autorizado ou timeline indisponível.");
+  return res.json();
+}
+
+/** Exclui um NPC/Boss (requer adventureId). */
+export async function deleteNpc(adventureId: string, id: string): Promise<void> {
+  const res = await fetch(
+    `/api/admin/npcs/${id}?adventureId=${encodeURIComponent(adventureId)}`,
     { method: "DELETE" },
   );
   if (!res.ok) {

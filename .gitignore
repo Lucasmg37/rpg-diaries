@@ -27,3 +27,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# backups (dump local do Firestore, contém dados de produção)
+/backups/

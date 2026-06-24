@@ -56,6 +56,23 @@ export const sampleAdventures: Adventure[] = [
   },
 ];
 
+/** Snapshot mínimo para os dados de exemplo (in-memory) — sem timeline de eventos por trás. */
+function sampleSnapshot(
+  className: string,
+  levels: number,
+  status: "active" | "dead" = "active",
+): Adventurer["snapshot"] {
+  return {
+    classes: [{ className, levels }],
+    totalLevel: levels,
+    status,
+    state: status === "dead" ? "fallen" : "normal",
+    inventory: [],
+    titles: [],
+    eventCount: 0,
+  };
+}
+
 export const sampleAdventurers: Adventurer[] = [
   {
     id: "adv-nyxx",
@@ -64,11 +81,10 @@ export const sampleAdventurers: Adventurer[] = [
     name: "Nyxx",
     className: "Mago",
     icon: "📖",
-    level: 2,
     background:
       "Possuidor de um grimório antigo, cujo dono anterior permanece vivo e misterioso. Especialista em magia de invocação — frequentemente descontrolada. Pediu sangue à guilda em um momento bizarro.",
-    status: "Ativo",
     sheetUrl: "https://example.com/fichas/nyxx",
+    snapshot: sampleSnapshot("Mago", 2),
   },
   {
     id: "adv-valerius",
@@ -77,11 +93,10 @@ export const sampleAdventurers: Adventurer[] = [
     name: "Valerius",
     className: "Guerreiro",
     icon: "⚔️",
-    level: 2,
     background:
       "Combate direto, resistência e liderança no campo de batalha. Aplicou o golpe final no primeiro boss do grupo e matou o chefe dos traficantes.",
-    status: "Ativo",
     sheetUrl: "https://example.com/fichas/valerius",
+    snapshot: sampleSnapshot("Guerreiro", 2),
   },
   {
     id: "adv-gutsen",
@@ -90,11 +105,10 @@ export const sampleAdventurers: Adventurer[] = [
     name: "Gutsen",
     className: "Bárbaro",
     icon: "🪓",
-    level: 2,
     background:
       "Fúria em combate, força bruta e resistência. Credor do grupo — emprestou dinheiro a Valerius após a primeira vitória.",
-    status: "Ativo",
     sheetUrl: "https://example.com/fichas/gutsen",
+    snapshot: sampleSnapshot("Bárbaro", 2),
   },
   {
     id: "adv-zephyron",
@@ -103,11 +117,10 @@ export const sampleAdventurers: Adventurer[] = [
     name: "Zephyron",
     className: "Ladino",
     icon: "🗡️",
-    level: 2,
     background:
       "Escravo renegado. Roubo silencioso, furtividade e perícia. Seu último feito foi roubar um mapa da empresa de geologia sem ser notado.",
-    status: "Morto",
     sheetUrl: "https://example.com/fichas/zephyron",
+    snapshot: sampleSnapshot("Ladino", 2, "dead"),
   },
   {
     id: "adv-kael",
@@ -116,11 +129,10 @@ export const sampleAdventurers: Adventurer[] = [
     name: "Kael Draven",
     className: "Clérigo",
     icon: "✨",
-    level: 2,
     background:
       "Cura, suporte e ressurreição espiritual. Novo membro, recrutado após a morte de Zephyron — abordou o grupo criticando-os por não terem um curador.",
-    status: "Ativo",
     sheetUrl: "https://example.com/fichas/kael-draven",
+    snapshot: sampleSnapshot("Clérigo", 2),
   },
 ];
 

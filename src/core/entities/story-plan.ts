@@ -41,6 +41,8 @@ export interface Scene {
   title: string;
   meta: string;
   blocks: SceneBlock[];
+  /** NPCs/Bosses previstos para aparecer nesta cena (planejamento do mestre). */
+  npcIds?: string[];
 }
 
 /** Banner de lore no topo do documento (.lore-banner). */

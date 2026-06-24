@@ -51,13 +51,17 @@ async function main() {
   }
 
   // Critério: badge contextual por sessão, lido do Firestore.
+  // Sessão 1 tem eventos para Nyxx → deriveSessionBadge projeta o texto a
+  // partir da timeline. Sessão 2 não tem eventos para ele → cai no
+  // sessionBadge legado digitado à mão ("Apreensivo").
   const nyxx1 = guild.adventures[0]?.sessions
     .find((s) => s.number === 1)
     ?.participants.find((p) => p.adventurer.name === "Nyxx")?.sessionBadge;
   const nyxx2 = guild.adventures[0]?.sessions
     .find((s) => s.number === 2)
     ?.participants.find((p) => p.adventurer.name === "Nyxx")?.sessionBadge;
-  const ok = nyxx1 === "⚠ Suspeito" && nyxx2 === "Apreensivo";
+  const ok =
+    nyxx1 === "↑ Nv. 2 · Ausentou-se da cerimônia" && nyxx2 === "Apreensivo";
   console.log(
     `\n${ok ? "✅" : "❌"} Nyxx (do Firestore): Sessão 1 = "${nyxx1}" | Sessão 2 = "${nyxx2}"`,
   );

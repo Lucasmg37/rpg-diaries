@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 
 import { AdventurerCard } from "@/components/public/AdventurerCard";
 import { LooseEndCard } from "@/components/public/LooseEndCard";
+import { NpcCard } from "@/components/public/NpcCard";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Ornament } from "@/components/ui/Ornament";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Stat } from "@/components/ui/Stat";
-import { getPublicMasterGuild } from "@/lib/guild-data";
+import { getPublicMasterGuild, getPublicNpcRoster } from "@/lib/guild-data";
+import { isAdventurerDead } from "@/lib/adventurer-view";
 
 export const dynamic = "force-static";
 
@@ -27,10 +29,9 @@ export default async function AdventurePage({
   if (!full) notFound();
 
   const { adventure, sessions, adventurers } = full;
-  const activeCount = adventurers.filter(
-    (a) => a.status.toLowerCase() !== "morto",
-  ).length;
+  const activeCount = adventurers.filter((a) => !isAdventurerDead(a)).length;
   const fallenCount = adventurers.length - activeCount;
+  const npcs = await getPublicNpcRoster(adventure.id);
 
   return (
     <div className="space-y-12">
@@ -75,6 +76,21 @@ export default async function AdventurePage({
           <Stat value={sessions.length} label="Sessões registradas" />
         </div>
       </section>
+
+      {/* NPCs e Bosses já apresentados */}
+      {npcs.length > 0 ? (
+        <section className="space-y-5">
+          <SectionHeading
+            eyebrow="Quem cruzou seu caminho"
+            title="NPCs & Bosses"
+          />
+          <div className="grid gap-5 sm:grid-cols-2">
+            {npcs.map((npc) => (
+              <NpcCard key={npc.id} npc={npc} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {/* Fios soltos agrupados por sessão */}
       <section className="space-y-6">
