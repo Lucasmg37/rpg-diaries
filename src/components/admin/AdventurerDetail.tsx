@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Alert, Eyebrow, Panel, Pill, SectionHeading } from "@/components/ui";
+import {
+  Alert,
+  Button,
+  Eyebrow,
+  Modal,
+  Panel,
+  Pill,
+  SectionHeading,
+} from "@/components/ui";
 import { colors } from "@/components/ui/tokens";
 import type { AdventurerEvent } from "@/core/entities/adventurer-event";
 import type { FullGuild } from "@/core/entities/views";
@@ -21,6 +29,7 @@ export function AdventurerDetail({ adventurerId }: { adventurerId: string }) {
   const [guild, setGuild] = useState<FullGuild | null>(null);
   const [timeline, setTimeline] = useState<AdventurerEvent[]>([]);
   const [retconTarget, setRetconTarget] = useState<AdventurerEvent | null>(null);
+  const [eventFormOpen, setEventFormOpen] = useState(false);
   const [error, setError] = useState("");
 
   const owner = useMemo(() => {
@@ -117,10 +126,39 @@ export function AdventurerDetail({ adventurerId }: { adventurerId: string }) {
       </Panel>
 
       <section className="space-y-4">
-        <SectionHeading
-          eyebrow="Mestre"
-          title={retconTarget ? `Corrigir: ${retconTarget.title}` : "Adicionar evento"}
+        <div className="flex items-center justify-between">
+          <SectionHeading eyebrow="Crônica pessoal" title="Linha do tempo" />
+          <Button
+            type="button"
+            onClick={() => {
+              setRetconTarget(null);
+              setEventFormOpen(true);
+            }}
+          >
+            + Adicionar evento
+          </Button>
+        </div>
+        <Eyebrow className="block">Inclui eventos sigilosos (visíveis só ao mestre)</Eyebrow>
+        {error ? <Alert tone="error">{error}</Alert> : null}
+        <AdventurerTimeline
+          events={timeline}
+          adventurerNamesById={namesById}
+          onRetcon={(event) => {
+            setRetconTarget(event);
+            setEventFormOpen(true);
+          }}
         />
+      </section>
+
+      <Modal
+        open={eventFormOpen}
+        onClose={() => {
+          setRetconTarget(null);
+          setEventFormOpen(false);
+        }}
+        title={retconTarget ? `Corrigir: ${retconTarget.title}` : "Adicionar evento"}
+        maxWidth="max-w-2xl"
+      >
         <AdventurerEventForm
           key={retconTarget?.id ?? "create"}
           adventurer={adventurer}
@@ -138,24 +176,17 @@ export function AdventurerDetail({ adventurerId }: { adventurerId: string }) {
                 }
               : undefined
           }
-          onCancel={retconTarget ? () => setRetconTarget(null) : undefined}
+          onCancel={() => {
+            setRetconTarget(null);
+            setEventFormOpen(false);
+          }}
           onCreated={() => {
             setRetconTarget(null);
+            setEventFormOpen(false);
             loadTimeline(adventure.id);
           }}
         />
-      </section>
-
-      <section className="space-y-4">
-        <SectionHeading eyebrow="Crônica pessoal" title="Linha do tempo" />
-        <Eyebrow className="block">Inclui eventos sigilosos (visíveis só ao mestre)</Eyebrow>
-        {error ? <Alert tone="error">{error}</Alert> : null}
-        <AdventurerTimeline
-          events={timeline}
-          adventurerNamesById={namesById}
-          onRetcon={setRetconTarget}
-        />
-      </section>
+      </Modal>
     </div>
   );
 }

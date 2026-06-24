@@ -7,7 +7,6 @@ import {
   Button,
   CheckboxOption,
   Field,
-  Panel,
   Select,
   TextArea,
 } from "@/components/ui";
@@ -151,7 +150,6 @@ export function NpcEventForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Panel className="space-y-4 p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <Select
             id="npc-ev-type"
@@ -248,7 +246,7 @@ export function NpcEventForm({
             <p className="font-heading text-[11px] uppercase tracking-wide text-guild-muted">
               Aventureiros que viram este NPC nesta sessão
             </p>
-            <div className="mt-1 flex flex-wrap gap-3">
+            <div className="mt-1 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {adventurers.map((a) => (
                 <CheckboxOption
                   key={a.id}
@@ -311,7 +309,6 @@ export function NpcEventForm({
             <option value="betrayal">Traição</option>
           </Select>
         )}
-      </Panel>
 
       {error ? <Alert tone="error">{error}</Alert> : null}
 

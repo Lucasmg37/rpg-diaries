@@ -6,9 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
-  Eyebrow,
   Field,
-  Panel,
+  Modal,
   Select,
   TextArea,
 } from "@/components/ui";
@@ -35,6 +34,7 @@ export function AdventurerManager() {
   const [form, setForm] = useState({ ...EMPTY });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   function load() {
     return getAdminGuild()
@@ -68,10 +68,15 @@ export function AdventurerManager() {
       goal: a.goal ?? "",
       sheetUrl: a.sheetUrl,
     });
+    setFormOpen(true);
   }
   function reset() {
     setEditingId(null);
     setForm({ ...EMPTY });
+  }
+  function closeForm() {
+    reset();
+    setFormOpen(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -85,7 +90,7 @@ export function AdventurerManager() {
       } else {
         await sendJson("/api/admin/adventurers", "POST", payload);
       }
-      reset();
+      closeForm();
       await load();
     } catch (err) {
       setError((err as Error).message);
@@ -100,9 +105,20 @@ export function AdventurerManager() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-center font-heading text-2xl font-bold text-guild-gold">
-        Aventureiros
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-heading text-2xl font-bold text-guild-gold">
+          Aventureiros
+        </h1>
+        <Button
+          type="button"
+          onClick={() => {
+            reset();
+            setFormOpen(true);
+          }}
+        >
+          + Novo aventureiro
+        </Button>
+      </div>
 
       {guild.adventures.length > 1 ? (
         <Select
@@ -160,9 +176,13 @@ export function AdventurerManager() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Panel className="space-y-4 p-6">
-          <Eyebrow>{editingId ? "Editar aventureiro" : "Novo aventureiro"}</Eyebrow>
+      <Modal
+        open={formOpen}
+        onClose={closeForm}
+        title={editingId ? "Editar aventureiro" : "Novo aventureiro"}
+        maxWidth="max-w-2xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               id="ad-name"
@@ -214,21 +234,19 @@ export function AdventurerManager() {
             value={form.goal}
             onChange={(e) => setForm({ ...form, goal: e.target.value })}
           />
-        </Panel>
 
-        {error ? <Alert tone="error">{error}</Alert> : null}
+          {error ? <Alert tone="error">{error}</Alert> : null}
 
-        <div className="flex items-center gap-4">
-          <Button type="submit" disabled={submitting || !form.name.trim()}>
-            {submitting ? "Salvando…" : editingId ? "Salvar" : "Adicionar"}
-          </Button>
-          {editingId ? (
-            <Button type="button" variant="ghost" onClick={reset}>
-              Cancelar edição
+          <div className="flex items-center gap-4">
+            <Button type="submit" disabled={submitting || !form.name.trim()}>
+              {submitting ? "Salvando…" : editingId ? "Salvar" : "Adicionar"}
             </Button>
-          ) : null}
-        </div>
-      </form>
+            <Button type="button" variant="ghost" onClick={closeForm}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   ConfirmDialog,
   Eyebrow,
   Field,
+  Modal,
   Panel,
   Select,
   TextArea,
@@ -114,6 +115,7 @@ export function StoryPlanManager({
   const [appliedEditId, setAppliedEditId] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StoryPlan | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   useEffect(() => {
     getAdminGuild()
@@ -159,10 +161,15 @@ export function StoryPlanManager({
   function startEdit(p: StoryPlan) {
     setEditingId(p.id);
     setForm(planToForm(p));
+    setFormOpen(true);
   }
   function reset() {
     setEditingId(null);
     setForm({ ...EMPTY_FORM });
+  }
+  function closeForm() {
+    reset();
+    setFormOpen(false);
   }
 
   async function handleDelete() {
@@ -171,7 +178,7 @@ export function StoryPlanManager({
     setError("");
     try {
       await deleteStoryPlan(adventureId, deleteTarget.id);
-      if (editingId === deleteTarget.id) reset();
+      if (editingId === deleteTarget.id) closeForm();
       setDeleteTarget(null);
       await loadPlans(adventureId);
     } catch (err) {
@@ -274,7 +281,7 @@ export function StoryPlanManager({
       } else {
         await sendJson("/api/admin/story-plans", "POST", payload);
       }
-      reset();
+      closeForm();
       await loadPlans(adventureId);
     } catch (err) {
       setError((err as Error).message);
@@ -289,12 +296,25 @@ export function StoryPlanManager({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-center font-heading text-2xl font-bold text-guild-gold">
-        Roteiros do Mestre
-      </h1>
-      <p className="text-center text-xs text-guild-muted">
-        Material sigiloso — visível apenas para o mestre logado.
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-guild-gold">
+            Roteiros do Mestre
+          </h1>
+          <p className="text-xs text-guild-muted">
+            Material sigiloso — visível apenas para o mestre logado.
+          </p>
+        </div>
+        <Button
+          type="button"
+          onClick={() => {
+            reset();
+            setFormOpen(true);
+          }}
+        >
+          + Novo roteiro
+        </Button>
+      </div>
 
       {adventures.length > 1 ? (
         <Select
@@ -353,9 +373,14 @@ export function StoryPlanManager({
         ) : null}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Panel className="space-y-4 p-6">
-          <Eyebrow>{editingId ? "Editar roteiro" : "Novo roteiro"}</Eyebrow>
+      <Modal
+        open={formOpen}
+        onClose={closeForm}
+        title={editingId ? "Editar roteiro" : "Novo roteiro"}
+        maxWidth="max-w-4xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Panel className="space-y-4 p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               id="sp-title"
@@ -652,7 +677,7 @@ export function StoryPlanManager({
                   NPCs/Bosses previstos nesta cena
                 </span>
                 {npcs.length > 0 ? (
-                  <div className="flex flex-wrap gap-3">
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {npcs.map((n) => {
                       const checked = (scene.npcIds ?? []).includes(n.id);
                       return (
@@ -694,19 +719,18 @@ export function StoryPlanManager({
           ) : null}
         </Panel>
 
-        {error ? <Alert tone="error">{error}</Alert> : null}
+          {error ? <Alert tone="error">{error}</Alert> : null}
 
-        <div className="flex items-center gap-4">
-          <Button type="submit" disabled={submitting || !form.title.trim()}>
-            {submitting ? "Salvando…" : editingId ? "Salvar" : "Adicionar"}
-          </Button>
-          {editingId ? (
-            <Button type="button" variant="ghost" onClick={reset}>
-              Cancelar edição
+          <div className="flex items-center gap-4">
+            <Button type="submit" disabled={submitting || !form.title.trim()}>
+              {submitting ? "Salvando…" : editingId ? "Salvar" : "Adicionar"}
             </Button>
-          ) : null}
-        </div>
-      </form>
+            <Button type="button" variant="ghost" onClick={closeForm}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}

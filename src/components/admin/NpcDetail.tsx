@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { Alert, Eyebrow, Panel, Pill, SectionHeading } from "@/components/ui";
+import {
+  Alert,
+  Button,
+  Eyebrow,
+  Modal,
+  Panel,
+  Pill,
+  SectionHeading,
+} from "@/components/ui";
 import { colors } from "@/components/ui/tokens";
 import type { Npc } from "@/core/entities/npc";
 import type { NpcEvent } from "@/core/entities/npc-event";
@@ -31,6 +39,7 @@ export function NpcDetail({
   const [npc, setNpc] = useState<Npc | null>(null);
   const [timeline, setTimeline] = useState<NpcEvent[]>([]);
   const [retconTarget, setRetconTarget] = useState<NpcEvent | null>(null);
+  const [eventFormOpen, setEventFormOpen] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(() => {
@@ -213,10 +222,38 @@ export function NpcDetail({
       ) : null}
 
       <section className="space-y-4">
-        <SectionHeading
-          eyebrow="Mestre"
-          title={retconTarget ? `Corrigir: ${retconTarget.title}` : "Adicionar evento"}
+        <div className="flex items-center justify-between">
+          <SectionHeading eyebrow="Crônica" title="Linha do tempo" />
+          <Button
+            type="button"
+            onClick={() => {
+              setRetconTarget(null);
+              setEventFormOpen(true);
+            }}
+          >
+            + Adicionar evento
+          </Button>
+        </div>
+        <Eyebrow className="block">Inclui eventos sigilosos (visíveis só ao mestre)</Eyebrow>
+        {error ? <Alert tone="error">{error}</Alert> : null}
+        <NpcTimeline
+          events={timeline}
+          onRetcon={(event) => {
+            setRetconTarget(event);
+            setEventFormOpen(true);
+          }}
         />
+      </section>
+
+      <Modal
+        open={eventFormOpen}
+        onClose={() => {
+          setRetconTarget(null);
+          setEventFormOpen(false);
+        }}
+        title={retconTarget ? `Corrigir: ${retconTarget.title}` : "Adicionar evento"}
+        maxWidth="max-w-2xl"
+      >
         <NpcEventForm
           key={retconTarget?.id ?? "create"}
           npc={npc}
@@ -234,20 +271,17 @@ export function NpcDetail({
                 }
               : undefined
           }
-          onCancel={retconTarget ? () => setRetconTarget(null) : undefined}
+          onCancel={() => {
+            setRetconTarget(null);
+            setEventFormOpen(false);
+          }}
           onCreated={() => {
             setRetconTarget(null);
+            setEventFormOpen(false);
             loadNpc();
           }}
         />
-      </section>
-
-      <section className="space-y-4">
-        <SectionHeading eyebrow="Crônica" title="Linha do tempo" />
-        <Eyebrow className="block">Inclui eventos sigilosos (visíveis só ao mestre)</Eyebrow>
-        {error ? <Alert tone="error">{error}</Alert> : null}
-        <NpcTimeline events={timeline} onRetcon={setRetconTarget} />
-      </section>
+      </Modal>
     </div>
   );
 }

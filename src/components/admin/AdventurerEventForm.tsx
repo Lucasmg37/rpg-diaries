@@ -7,7 +7,6 @@ import {
   Button,
   CheckboxOption,
   Field,
-  Panel,
   Select,
   TextArea,
 } from "@/components/ui";
@@ -206,7 +205,6 @@ export function AdventurerEventForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Panel className="space-y-4 p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <Select
             id="ev-type"
@@ -264,7 +262,7 @@ export function AdventurerEventForm({
             <p className="font-heading text-[11px] uppercase tracking-wide text-guild-muted">
               Outros envolvidos (evento cross-character)
             </p>
-            <div className="mt-1 flex flex-wrap gap-3">
+            <div className="mt-1 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {otherAdventurers.map((a) => (
                 <CheckboxOption
                   key={a.id}
@@ -484,7 +482,6 @@ export function AdventurerEventForm({
             />
           </div>
         )}
-      </Panel>
 
       {error ? <Alert tone="error">{error}</Alert> : null}
 

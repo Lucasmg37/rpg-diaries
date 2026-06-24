@@ -14,3 +14,4 @@ export * from "./TextArea";
 export * from "./Select";
 export * from "./CheckboxOption";
 export * from "./ConfirmDialog";
+export * from "./Modal";

@@ -509,21 +509,23 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
       <Panel className="space-y-3 p-6">
         <Eyebrow>Fios soltos desta sessão</Eyebrow>
         {looseEndOptions.length > 0 ? (
-          looseEndOptions.map((l) => (
-            <CheckboxOption
-              key={l.id}
-              checked={looseEndIds.includes(l.id)}
-              onChange={() =>
-                setLooseEndIds((prev) =>
-                  prev.includes(l.id)
-                    ? prev.filter((x) => x !== l.id)
-                    : [...prev, l.id],
-                )
-              }
-            >
-              <span aria-hidden>{l.icon}</span> {l.title}
-            </CheckboxOption>
-          ))
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {looseEndOptions.map((l) => (
+              <CheckboxOption
+                key={l.id}
+                checked={looseEndIds.includes(l.id)}
+                onChange={() =>
+                  setLooseEndIds((prev) =>
+                    prev.includes(l.id)
+                      ? prev.filter((x) => x !== l.id)
+                      : [...prev, l.id],
+                  )
+                }
+              >
+                <span aria-hidden>{l.icon}</span> {l.title}
+              </CheckboxOption>
+            ))}
+          </div>
         ) : (
           <p className="text-sm text-guild-muted">
             Nenhum fio solto cadastrado nesta aventura.
@@ -606,25 +608,27 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
       <Panel className="space-y-3 p-6">
         <Eyebrow>NPCs & Bosses presentes nesta sessão</Eyebrow>
         {npcs.length > 0 ? (
-          npcs.map((n) => (
-            <CheckboxOption
-              key={n.id}
-              checked={npcIds.includes(n.id)}
-              onChange={() =>
-                setNpcIds((prev) =>
-                  prev.includes(n.id)
-                    ? prev.filter((x) => x !== n.id)
-                    : [...prev, n.id],
-                )
-              }
-            >
-              <span aria-hidden>{n.icon ?? (n.kind === "boss" ? "👹" : "🧙")}</span>{" "}
-              {n.name}
-              <span className="text-xs text-guild-muted/70">
-                ({npcKindLabel(n)})
-              </span>
-            </CheckboxOption>
-          ))
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {npcs.map((n) => (
+              <CheckboxOption
+                key={n.id}
+                checked={npcIds.includes(n.id)}
+                onChange={() =>
+                  setNpcIds((prev) =>
+                    prev.includes(n.id)
+                      ? prev.filter((x) => x !== n.id)
+                      : [...prev, n.id],
+                  )
+                }
+              >
+                <span aria-hidden>{n.icon ?? (n.kind === "boss" ? "👹" : "🧙")}</span>{" "}
+                {n.name}
+                <span className="text-xs text-guild-muted/70">
+                  ({npcKindLabel(n)})
+                </span>
+              </CheckboxOption>
+            ))}
+          </div>
         ) : (
           <p className="text-sm text-guild-muted">
             Nenhum NPC/Boss cadastrado nesta aventura ainda.

@@ -6,9 +6,8 @@ import {
   Alert,
   Button,
   CheckboxOption,
-  Eyebrow,
   Field,
-  Panel,
+  Modal,
   Select,
   TextArea,
 } from "@/components/ui";
@@ -32,6 +31,7 @@ export function LooseEndManager() {
   const [form, setForm] = useState({ ...EMPTY });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   function load() {
     return getAdminGuild()
@@ -64,10 +64,15 @@ export function LooseEndManager() {
       icon: l.icon,
       resolved: l.resolved,
     });
+    setFormOpen(true);
   }
   function reset() {
     setEditingId(null);
     setForm({ ...EMPTY });
+  }
+  function closeForm() {
+    reset();
+    setFormOpen(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -81,7 +86,7 @@ export function LooseEndManager() {
       } else {
         await sendJson("/api/admin/loose-ends", "POST", payload);
       }
-      reset();
+      closeForm();
       await load();
     } catch (err) {
       setError((err as Error).message);
@@ -96,9 +101,20 @@ export function LooseEndManager() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-center font-heading text-2xl font-bold text-guild-gold">
-        Fios Soltos
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-heading text-2xl font-bold text-guild-gold">
+          Fios Soltos
+        </h1>
+        <Button
+          type="button"
+          onClick={() => {
+            reset();
+            setFormOpen(true);
+          }}
+        >
+          + Novo fio solto
+        </Button>
+      </div>
 
       {guild.adventures.length > 1 ? (
         <Select
@@ -139,9 +155,12 @@ export function LooseEndManager() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Panel className="space-y-4 p-6">
-          <Eyebrow>{editingId ? "Editar fio solto" : "Novo fio solto"}</Eyebrow>
+      <Modal
+        open={formOpen}
+        onClose={closeForm}
+        title={editingId ? "Editar fio solto" : "Novo fio solto"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               id="le-title"
@@ -181,21 +200,19 @@ export function LooseEndManager() {
           >
             Resolvido
           </CheckboxOption>
-        </Panel>
 
-        {error ? <Alert tone="error">{error}</Alert> : null}
+          {error ? <Alert tone="error">{error}</Alert> : null}
 
-        <div className="flex items-center gap-4">
-          <Button type="submit" disabled={submitting || !form.title.trim()}>
-            {submitting ? "Salvando…" : editingId ? "Salvar" : "Adicionar"}
-          </Button>
-          {editingId ? (
-            <Button type="button" variant="ghost" onClick={reset}>
-              Cancelar edição
+          <div className="flex items-center gap-4">
+            <Button type="submit" disabled={submitting || !form.title.trim()}>
+              {submitting ? "Salvando…" : editingId ? "Salvar" : "Adicionar"}
             </Button>
-          ) : null}
-        </div>
-      </form>
+            <Button type="button" variant="ghost" onClick={closeForm}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
