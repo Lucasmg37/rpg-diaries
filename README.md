@@ -46,7 +46,7 @@ src/
     admin/            # SessionForm, AdventurerManager, AdventurerDetail, AdventurerEventForm,
                        # AdventurerTimeline, NpcManager, NpcDetail, NpcEventForm, NpcTimeline,
                        # LooseEndManager, StoryPlanManager/Document/Viewer, LiveNotesPanel
-    ui/               # design system (Panel, Callout, Pill, Eyebrow, Stat, Field, ConfirmDialog, ...) — ver /design-system
+    ui/               # design system (Panel, Callout, Pill, Eyebrow, Stat, StatCard, Field, ConfirmDialog, ...) — ver /design-system
   lib/             # sample-data, guild-data (loader cacheado), npc-view, guild-messages (ditados aleatórios
                    # do footer/`/about`), jwt, auth-middleware, admin-client/serializers
 scripts/
@@ -182,8 +182,11 @@ mão.
   público. A ficha pública (`/npcs/[id]`) nunca expõe `masterNotes` nem
   eventos `visibility: "master"`. `/npcs` agrupa o elenco por aventura,
   reusando o mesmo `getPublicNpcRoster` por aventura.
-- Modo combate: `/admin/management/npcs/[id]` (`NpcDetail`) renderiza
-  `stats` (PV, PM, Defesa, resistências, ataques) num painel compacto para
+- Modo combate: `/admin/management/npcs/[id]` (`NpcDetail`) e a ficha pública
+  (`/npcs/[id]`) renderizam a "Ficha de combate" com `stats` (PV/PM/Defesa em
+  destaque via `ui/StatCard`, com ícone ❤️/🔵/🛡️; atributos; resistências e
+  imunidades lado a lado; perícias/habilidades; ataques e magias em cards de
+  2 colunas) — layout compartilhado entre as duas telas, pensado para
   consulta rápida durante a mesa, além da ficha completa e da timeline com
   o botão "Corrigir" (retcon).
 - Índices compostos do Firestore para `npcEvents` (`npcId` combinado com

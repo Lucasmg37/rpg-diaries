@@ -5,6 +5,7 @@ export * from "./Ornament";
 export * from "./SectionHeading";
 export * from "./Pill";
 export * from "./Stat";
+export * from "./StatCard";
 export * from "./Callout";
 export * from "./Quote";
 export * from "./Button";

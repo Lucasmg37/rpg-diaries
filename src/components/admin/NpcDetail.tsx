@@ -11,6 +11,7 @@ import {
   Panel,
   Pill,
   SectionHeading,
+  StatCard,
 } from "@/components/ui";
 import { colors } from "@/components/ui/tokens";
 import type { Npc } from "@/core/entities/npc";
@@ -158,11 +159,11 @@ export function NpcDetail({
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <Stat icon="❤️" label="PV" value={String(stats.pv)} />
+            <StatCard icon="❤️" label="PV" value={String(stats.pv)} />
             {stats.pm !== undefined ? (
-              <Stat icon="🔵" label="PM" value={String(stats.pm)} />
+              <StatCard icon="🔵" label="PM" value={String(stats.pm)} />
             ) : null}
-            <Stat icon="🛡️" label="Defesa" value={String(stats.defesa)} />
+            <StatCard icon="🛡️" label="Defesa" value={String(stats.defesa)} />
           </div>
 
           {stats.atributos ? (
@@ -179,7 +180,7 @@ export function NpcDetail({
                     ["car", "Car"],
                   ] as const
                 ).map(([key, label]) => (
-                  <Stat key={key} label={label} value={String(stats.atributos![key])} />
+                  <StatCard key={key} label={label} value={String(stats.atributos![key])} />
                 ))}
               </div>
             </div>
@@ -368,26 +369,6 @@ export function NpcDetail({
           }}
         />
       </Modal>
-    </div>
-  );
-}
-
-function Stat({
-  icon,
-  label,
-  value,
-}: {
-  icon?: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-lg border border-guild-border bg-guild-border/10 p-2 text-center">
-      <p className="font-heading text-lg font-bold leading-tight text-guild-gold">
-        {icon ? <span aria-hidden>{icon} </span> : null}
-        {value}
-      </p>
-      <p className="text-[10px] uppercase tracking-wide text-guild-muted">{label}</p>
     </div>
   );
 }

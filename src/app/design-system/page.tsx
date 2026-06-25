@@ -12,6 +12,7 @@ import { Quote } from "@/components/ui/Quote";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Select } from "@/components/ui/Select";
 import { Stat } from "@/components/ui/Stat";
+import { StatCard } from "@/components/ui/StatCard";
 import { TextArea } from "@/components/ui/TextArea";
 import { accent, colors, fonts } from "@/components/ui/tokens";
 import { ConfirmDialogDemo } from "./ConfirmDialogDemo";
@@ -157,6 +158,20 @@ export default function DesignSystemPage() {
             <Stat value={4} label="Ativos agora" />
             <Stat value={1} label="Caídos" accent />
             <Stat value={2} label="Sessões" />
+          </div>
+        </Panel>
+
+        <Panel className="space-y-3 p-6">
+          <Eyebrow>StatCard</Eyebrow>
+          <p className="text-xs text-guild-muted">
+            Caixa com borda para destacar valores na ficha de combate de
+            NPCs/Bosses — ícone opcional para as informações mais importantes
+            (PV, PM, Defesa).
+          </p>
+          <div className="grid grid-cols-3 gap-3 sm:max-w-sm">
+            <StatCard icon="❤️" label="PV" value="32" />
+            <StatCard icon="🔵" label="PM" value="12" />
+            <StatCard icon="🛡️" label="Defesa" value="16" />
           </div>
         </Panel>
 

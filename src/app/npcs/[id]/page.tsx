@@ -5,6 +5,7 @@ import { NpcTimeline } from "@/components/public/NpcTimeline";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Pill } from "@/components/ui/Pill";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { StatCard } from "@/components/ui/StatCard";
 import { colors } from "@/components/ui/tokens";
 import { getPublicMasterGuild, getPublicNpcRoster, getPublicNpcTimeline } from "@/lib/guild-data";
 import {
@@ -96,11 +97,11 @@ export default async function NpcPage({
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <PublicStat icon="❤️" label="PV" value={String(stats.pv)} />
+            <StatCard icon="❤️" label="PV" value={String(stats.pv)} />
             {stats.pm !== undefined ? (
-              <PublicStat icon="🔵" label="PM" value={String(stats.pm)} />
+              <StatCard icon="🔵" label="PM" value={String(stats.pm)} />
             ) : null}
-            <PublicStat icon="🛡️" label="Defesa" value={String(stats.defesa)} />
+            <StatCard icon="🛡️" label="Defesa" value={String(stats.defesa)} />
           </div>
 
           {stats.atributos ? (
@@ -117,7 +118,7 @@ export default async function NpcPage({
                     ["car", "Car"],
                   ] as const
                 ).map(([key, label]) => (
-                  <PublicStat
+                  <StatCard
                     key={key}
                     label={label}
                     value={String(stats.atributos![key])}
@@ -253,26 +254,6 @@ export default async function NpcPage({
         <SectionHeading eyebrow="Crônica" title="Linha do tempo" />
         <NpcTimeline events={timeline} />
       </section>
-    </div>
-  );
-}
-
-function PublicStat({
-  icon,
-  label,
-  value,
-}: {
-  icon?: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-lg border border-guild-border bg-guild-border/10 p-2 text-center">
-      <p className="font-heading text-lg font-bold leading-tight text-guild-gold">
-        {icon ? <span aria-hidden>{icon} </span> : null}
-        {value}
-      </p>
-      <p className="text-[10px] uppercase tracking-wide text-guild-muted">{label}</p>
     </div>
   );
 }
