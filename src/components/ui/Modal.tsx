@@ -34,13 +34,13 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
       <Panel
-        className={`w-full ${maxWidth} space-y-4 p-6`}
+        className={`w-full ${maxWidth} max-h-[85vh] space-y-4 overflow-y-auto p-6`}
         style={{ cursor: "auto" }}
       >
         <div onClick={(e) => e.stopPropagation()} className="space-y-4">

@@ -132,6 +132,19 @@ export function NpcDetail({
             </Pill>
           </div>
         ) : null}
+
+        {npc.sheetUrl ? (
+          <p className="border-t border-guild-border pt-3 text-sm">
+            <a
+              href={npc.sheetUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-guild-goldsoft transition-colors hover:text-guild-gold"
+            >
+              📄 Ver ficha completa
+            </a>
+          </p>
+        ) : null}
       </Panel>
 
       {stats ? (
@@ -139,10 +152,30 @@ export function NpcDetail({
           <Eyebrow>Modo combate — ficha resumida</Eyebrow>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Stat label="Classe/Tipo" value={stats.classOrType || "—"} />
+            {stats.level !== undefined ? <Stat label="Nível" value={String(stats.level)} /> : null}
             <Stat label="PV" value={String(stats.pv)} />
             {stats.pm !== undefined ? <Stat label="PM" value={String(stats.pm)} /> : null}
             <Stat label="Defesa" value={String(stats.defesa)} />
           </div>
+          {stats.atributos ? (
+            <div className="space-y-1">
+              <Eyebrow>Atributos</Eyebrow>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                {(
+                  [
+                    ["for", "For"],
+                    ["des", "Des"],
+                    ["con", "Con"],
+                    ["int", "Int"],
+                    ["sab", "Sab"],
+                    ["car", "Car"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <Stat key={key} label={label} value={String(stats.atributos![key])} />
+                ))}
+              </div>
+            </div>
+          ) : null}
           {stats.resistencias?.length ? (
             <div className="space-y-1">
               <Eyebrow>Resistências</Eyebrow>

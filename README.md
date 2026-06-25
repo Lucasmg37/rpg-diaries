@@ -8,7 +8,10 @@ Firestore via _adapters_.
 > páginas públicas (SSG), autenticação do Mestre, área de gestão, deploy hook,
 > servidor MCP e roteiros do mestre com notas ao vivo. Concluído: migração do
 > histórico de aventureiros para **event sourcing** e entidade de **NPCs &
-> Bosses** (mesmo padrão de event sourcing, ver seções próprias abaixo).
+> Bosses** (mesmo padrão de event sourcing, ver seções próprias abaixo);
+> página pública `/about`; lista pública geral `/npcs`; aventureiros e fios
+> soltos com páginas/links próprios por aventura (antes um único card
+> combinado); menu de NPCs & Bosses no dashboard do mestre.
 > Pendências em `TODO.md`.
 
 ## Arquitetura
@@ -29,7 +32,8 @@ src/
                     # (adventurerEvents/npcEvents são subcoleções por aventura, não top-level)
     config/        # repository-factory (ÚNICO ponto que decide o adapter) + master-config
   app/
-    (público)         # páginas SSG: /, /adventures/[slug], /sessions/[id], /adventurers/[id], /npcs/[id]
+    (público)         # páginas SSG: /, /about, /adventures/[slug] (+ /adventurers, /loose-ends),
+                       # /sessions/[id], /adventurers/[id], /npcs (lista geral), /npcs/[id]
     admin/            # área de gestão (client-gated por sessão) — dashboard, login, management/*
                        # (inclui management/adventurers/[id] e management/npcs/[id] — perfil + timeline + form de evento)
     story-plans/[id]  # visualizador do roteiro do mestre — sigiloso, gated no servidor (cookie + JWT)
@@ -43,7 +47,8 @@ src/
                        # AdventurerTimeline, NpcManager, NpcDetail, NpcEventForm, NpcTimeline,
                        # LooseEndManager, StoryPlanManager/Document/Viewer, LiveNotesPanel
     ui/               # design system (Panel, Callout, Pill, Eyebrow, Stat, Field, ConfirmDialog, ...) — ver /design-system
-  lib/             # sample-data, guild-data (loader cacheado), npc-view, jwt, auth-middleware, admin-client/serializers
+  lib/             # sample-data, guild-data (loader cacheado), npc-view, guild-messages (ditados aleatórios
+                   # do footer/`/about`), jwt, auth-middleware, admin-client/serializers
 scripts/
   demo-phase1.ts                  # demonstração do domínio em memória
   seed.ts                         # popula o Firestore com os dados de exemplo
@@ -170,12 +175,13 @@ mão.
   **de fato** apareceu e foi visto é o evento `appearance` na timeline do
   NPC, gravado via `markNpcSeenByAdventurers` (usecase) / `markNpcSeen`
   (MCP) — normalmente disparado quando o mestre confirma a cena na mesa.
-- Visibilidade pública: a home/aventura/sessão só listam (e só geram página
-  estática para) NPCs com `appearedInSessionIds` não vazio
-  (`getPublicNpcRoster`/`lib/npc-view.ts#npcHasAppeared`) — um NPC cadastrado
-  mas nunca apresentado é só preparo do mestre, invisível ao público. A
-  ficha pública (`/npcs/[id]`) nunca expõe `masterNotes` nem eventos
-  `visibility: "master"`.
+- Visibilidade pública: a home, a página de aventura e a lista geral `/npcs`
+  só listam (e só geram página estática para) NPCs com `appearedInSessionIds`
+  não vazio (`getPublicNpcRoster`/`lib/npc-view.ts#npcHasAppeared`) — um NPC
+  cadastrado mas nunca apresentado é só preparo do mestre, invisível ao
+  público. A ficha pública (`/npcs/[id]`) nunca expõe `masterNotes` nem
+  eventos `visibility: "master"`. `/npcs` agrupa o elenco por aventura,
+  reusando o mesmo `getPublicNpcRoster` por aventura.
 - Modo combate: `/admin/management/npcs/[id]` (`NpcDetail`) renderiza
   `stats` (PV, PM, Defesa, resistências, ataques) num painel compacto para
   consulta rápida durante a mesa, além da ficha completa e da timeline com

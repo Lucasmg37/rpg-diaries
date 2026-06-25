@@ -82,6 +82,11 @@ export default function DashboardPage() {
             label="Fios Soltos"
           />
           <NavCard
+            href="/admin/management/npcs"
+            icon="👹"
+            label="NPCs & Bosses"
+          />
+          <NavCard
             href="/admin/management/story-plans"
             icon="📜"
             label="Roteiros"

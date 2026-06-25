@@ -69,6 +69,7 @@ const EMPTY = {
   sheetUrl: "",
   pv: 0,
   defesa: 0,
+  level: "",
   classOrType: "",
   resistencias: "",
   imunidades: "",
@@ -141,6 +142,7 @@ export function NpcManager() {
       sheetUrl: n.sheetUrl ?? "",
       pv: n.stats?.pv ?? 0,
       defesa: n.stats?.defesa ?? 0,
+      level: n.stats?.level !== undefined ? String(n.stats.level) : "",
       classOrType: n.stats?.classOrType ?? "",
       resistencias: n.stats?.resistencias?.join(", ") ?? "",
       imunidades: n.stats?.imunidades?.join(", ") ?? "",
@@ -190,6 +192,7 @@ export function NpcManager() {
         form.classOrType || form.pv || form.defesa
           ? {
               classOrType: form.classOrType,
+              level: form.level ? Number(form.level) : undefined,
               pv: form.pv,
               defesa: form.defesa,
               resistencias: toList(form.resistencias),
@@ -390,12 +393,19 @@ export function NpcManager() {
           <Eyebrow className="block">
             Ficha resumida (Tormenta) — para consulta rápida na mesa. Vale para NPCs e Bosses.
           </Eyebrow>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-4">
             <Field
               id="npc-classortype"
               label="Classe/Tipo"
               value={form.classOrType}
               onChange={(e) => setForm({ ...form, classOrType: e.target.value })}
+            />
+            <Field
+              id="npc-level"
+              label="Nível"
+              type="number"
+              value={form.level}
+              onChange={(e) => setForm({ ...form, level: e.target.value })}
             />
             <Field
               id="npc-pv"

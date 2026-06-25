@@ -74,26 +74,62 @@ export default async function HomePage() {
             ))}
           </div>
 
-          {/* Acesso a aventureiros + fios soltos */}
-          <Link
-            href={`/adventures/${full.adventure.slug}`}
-            className="panel flex items-center justify-between gap-3 p-5 transition-colors hover:border-guild-goldsoft"
-          >
-            <span>
-              <span className="block font-heading text-sm font-semibold text-guild-gold">
-                👥 Aventureiros &amp; 🧵 Fios Soltos
+          {/* Acesso a aventureiros e fios soltos, em links separados */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Link
+              href={`/adventures/${full.adventure.slug}/adventurers`}
+              className="panel flex items-center justify-between gap-3 p-5 transition-colors hover:border-guild-goldsoft"
+            >
+              <span>
+                <span className="block font-heading text-sm font-semibold text-guild-gold">
+                  👥 Aventureiros
+                </span>
+                <span className="mt-1 block text-xs text-guild-muted">
+                  {full.adventurers.length} aventureiros
+                </span>
               </span>
-              <span className="mt-1 block text-xs text-guild-muted">
-                {full.adventurers.length} aventureiros ·{" "}
-                {full.looseEnds.length} fios soltos
+              <span className="shrink-0 font-heading text-[11px] uppercase tracking-wide text-guild-goldsoft">
+                Abrir →
               </span>
-            </span>
-            <span className="shrink-0 font-heading text-[11px] uppercase tracking-wide text-guild-goldsoft">
-              Abrir →
-            </span>
-          </Link>
+            </Link>
+
+            <Link
+              href={`/adventures/${full.adventure.slug}/loose-ends`}
+              className="panel flex items-center justify-between gap-3 p-5 transition-colors hover:border-guild-goldsoft"
+            >
+              <span>
+                <span className="block font-heading text-sm font-semibold text-guild-gold">
+                  🧵 Fios Soltos
+                </span>
+                <span className="mt-1 block text-xs text-guild-muted">
+                  {full.looseEnds.length} fios soltos
+                </span>
+              </span>
+              <span className="shrink-0 font-heading text-[11px] uppercase tracking-wide text-guild-goldsoft">
+                Abrir →
+              </span>
+            </Link>
+          </div>
         </section>
       ))}
+
+      {/* Acesso global aos NPCs e Bosses já apresentados */}
+      <Link
+        href="/npcs"
+        className="panel flex items-center justify-between gap-3 p-5 transition-colors hover:border-guild-goldsoft"
+      >
+        <span>
+          <span className="block font-heading text-sm font-semibold text-guild-gold">
+            👹 NPCs &amp; Bosses
+          </span>
+          <span className="mt-1 block text-xs text-guild-muted">
+            Quem já cruzou o caminho da guilda
+          </span>
+        </span>
+        <span className="shrink-0 font-heading text-[11px] uppercase tracking-wide text-guild-goldsoft">
+          Abrir →
+        </span>
+      </Link>
     </div>
   );
 }

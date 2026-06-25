@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { AdventurerCard } from "@/components/public/AdventurerCard";
-import { LooseEndCard } from "@/components/public/LooseEndCard";
 import { NpcCard } from "@/components/public/NpcCard";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Ornament } from "@/components/ui/Ornament";
@@ -28,9 +26,10 @@ export default async function AdventurePage({
   const full = adventures.find((a) => a.adventure.slug === slug);
   if (!full) notFound();
 
-  const { adventure, sessions, adventurers } = full;
+  const { adventure, sessions, adventurers, looseEnds } = full;
   const activeCount = adventurers.filter((a) => !isAdventurerDead(a)).length;
   const fallenCount = adventurers.length - activeCount;
+  const openLooseEnds = looseEnds.filter((l) => !l.resolved).length;
   const npcs = await getPublicNpcRoster(adventure.id);
 
   return (
@@ -55,27 +54,50 @@ export default async function AdventurePage({
         </p>
       </section>
 
-      {/* Aventureiros */}
-      <section className="space-y-5">
-        <SectionHeading
-          eyebrow="Membros da Guilda"
-          title="Perfil dos Aventureiros"
-        />
+      {/* Acesso a aventureiros e fios soltos, em links separados */}
+      <section className="grid gap-4 sm:grid-cols-2">
+        <Link
+          href={`/adventures/${adventure.slug}/adventurers`}
+          className="panel flex items-center justify-between gap-3 p-5 transition-colors hover:border-guild-goldsoft"
+        >
+          <span>
+            <span className="block font-heading text-sm font-semibold text-guild-gold">
+              👥 Aventureiros
+            </span>
+            <span className="mt-1 block text-xs text-guild-muted">
+              {adventurers.length} aventureiros · {activeCount} ativos
+            </span>
+          </span>
+          <span className="shrink-0 font-heading text-[11px] uppercase tracking-wide text-guild-goldsoft">
+            Abrir →
+          </span>
+        </Link>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          {adventurers.map((adventurer) => (
-            <AdventurerCard key={adventurer.id} adventurer={adventurer} />
-          ))}
-        </div>
-
-        {/* Estatísticas do grupo */}
-        <div className="panel grid grid-cols-2 gap-4 bg-guild-border/10 p-5 sm:grid-cols-4">
-          <Stat value={adventurers.length} label="Membros totais" />
-          <Stat value={activeCount} label="Ativos agora" />
-          <Stat value={fallenCount} label="Caídos" accent />
-          <Stat value={sessions.length} label="Sessões registradas" />
-        </div>
+        <Link
+          href={`/adventures/${adventure.slug}/loose-ends`}
+          className="panel flex items-center justify-between gap-3 p-5 transition-colors hover:border-guild-goldsoft"
+        >
+          <span>
+            <span className="block font-heading text-sm font-semibold text-guild-gold">
+              🧵 Fios Soltos
+            </span>
+            <span className="mt-1 block text-xs text-guild-muted">
+              {looseEnds.length} fios · {openLooseEnds} em aberto
+            </span>
+          </span>
+          <span className="shrink-0 font-heading text-[11px] uppercase tracking-wide text-guild-goldsoft">
+            Abrir →
+          </span>
+        </Link>
       </section>
+
+      {/* Estatísticas do grupo */}
+      <div className="panel grid grid-cols-2 gap-4 bg-guild-border/10 p-5 sm:grid-cols-4">
+        <Stat value={adventurers.length} label="Membros totais" />
+        <Stat value={activeCount} label="Ativos agora" />
+        <Stat value={fallenCount} label="Caídos" accent />
+        <Stat value={sessions.length} label="Sessões registradas" />
+      </div>
 
       {/* NPCs e Bosses já apresentados */}
       {npcs.length > 0 ? (
@@ -91,29 +113,6 @@ export default async function AdventurePage({
           </div>
         </section>
       ) : null}
-
-      {/* Fios soltos agrupados por sessão */}
-      <section className="space-y-6">
-        <SectionHeading
-          eyebrow="Mistérios & Pendências"
-          title="Fios Soltos da Campanha"
-        />
-
-        {sessions.map((session) =>
-          session.looseEnds.length > 0 ? (
-            <div key={session.id} className="space-y-4">
-              <h3 className="border-b border-guild-border pb-2 font-heading text-base text-guild-gold">
-                Sessão {session.number} — {session.title}
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {session.looseEnds.map((looseEnd) => (
-                  <LooseEndCard key={looseEnd.id} looseEnd={looseEnd} />
-                ))}
-              </div>
-            </div>
-          ) : null,
-        )}
-      </section>
 
       {/* Sessões */}
       <section className="space-y-4">

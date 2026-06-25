@@ -6,6 +6,18 @@ mestre com notas ao vivo). O que falta:
 
 ---
 
+## Navegação pública (NPCs, About, Aventureiros/Fios Soltos)
+
+Página pública `/about` (com botão que abre uma modal exibindo um ditado
+aleatório da guilda, reaproveitando `lib/guild-messages.ts`, também usado no
+footer); lista pública geral `/npcs` (todos os NPCs/Bosses já apresentados,
+agrupados por aventura); páginas dedicadas
+`/adventures/[slug]/adventurers` e `/adventures/[slug]/loose-ends` (antes um
+único card "Aventureiros & Fios Soltos" na home/aventura); menu "NPCs &
+Bosses" no dashboard do mestre (`/admin/management/npcs`) — **concluído**.
+
+---
+
 ## Event sourcing de aventureiros
 
 Migração do histórico de aventureiros de campos editados à mão para timeline

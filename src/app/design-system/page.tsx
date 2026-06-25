@@ -15,6 +15,7 @@ import { Stat } from "@/components/ui/Stat";
 import { TextArea } from "@/components/ui/TextArea";
 import { accent, colors, fonts } from "@/components/ui/tokens";
 import { ConfirmDialogDemo } from "./ConfirmDialogDemo";
+import { ModalDemo } from "./ModalDemo";
 
 export const dynamic = "force-static";
 
@@ -248,6 +249,16 @@ export default function DesignSystemPage() {
             habilitar o botão de exclusão.
           </p>
           <ConfirmDialogDemo />
+        </Panel>
+
+        <Panel className="space-y-3 p-6">
+          <Eyebrow>Modal</Eyebrow>
+          <p className="text-xs text-guild-muted">
+            Overlay genérico usado pelos formulários de criar/editar nos
+            managers do mestre — fecha ao clicar fora ou pressionar Esc.
+            <code>ConfirmDialog</code> é construído sobre este componente.
+          </p>
+          <ModalDemo />
         </Panel>
       </section>
 
