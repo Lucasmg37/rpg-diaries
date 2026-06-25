@@ -148,17 +148,25 @@ export function NpcDetail({
       </Panel>
 
       {stats ? (
-        <Panel className="space-y-3 p-6">
-          <Eyebrow>Modo combate — ficha resumida</Eyebrow>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat label="Classe/Tipo" value={stats.classOrType || "—"} />
-            {stats.level !== undefined ? <Stat label="Nível" value={String(stats.level)} /> : null}
-            <Stat label="PV" value={String(stats.pv)} />
-            {stats.pm !== undefined ? <Stat label="PM" value={String(stats.pm)} /> : null}
-            <Stat label="Defesa" value={String(stats.defesa)} />
+        <Panel className="space-y-5 p-6">
+          <div className="flex items-center justify-between gap-3">
+            <Eyebrow>⚔️ Modo combate — ficha resumida</Eyebrow>
+            <p className="text-right text-xs uppercase tracking-wide text-guild-muted">
+              {stats.classOrType || "—"}
+              {stats.level !== undefined ? ` · Nv. ${stats.level}` : ""}
+            </p>
           </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <Stat icon="❤️" label="PV" value={String(stats.pv)} />
+            {stats.pm !== undefined ? (
+              <Stat icon="🔵" label="PM" value={String(stats.pm)} />
+            ) : null}
+            <Stat icon="🛡️" label="Defesa" value={String(stats.defesa)} />
+          </div>
+
           {stats.atributos ? (
-            <div className="space-y-1">
+            <div className="space-y-2 border-t border-guild-border pt-4">
               <Eyebrow>Atributos</Eyebrow>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 {(
@@ -176,29 +184,35 @@ export function NpcDetail({
               </div>
             </div>
           ) : null}
-          {stats.resistencias?.length ? (
-            <div className="space-y-1">
-              <Eyebrow>Resistências</Eyebrow>
-              <div className="flex flex-wrap gap-2">
-                {stats.resistencias.map((r) => (
-                  <Pill key={r} color={colors.goldsoft}>{r}</Pill>
-                ))}
-              </div>
+
+          {stats.resistencias?.length || stats.imunidades?.length ? (
+            <div className="grid gap-4 border-t border-guild-border pt-4 sm:grid-cols-2">
+              {stats.resistencias?.length ? (
+                <div className="space-y-2">
+                  <Eyebrow>🛡 Resistências</Eyebrow>
+                  <div className="flex flex-wrap gap-2">
+                    {stats.resistencias.map((r) => (
+                      <Pill key={r} color={colors.goldsoft}>{r}</Pill>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {stats.imunidades?.length ? (
+                <div className="space-y-2">
+                  <Eyebrow>☠ Imunidades</Eyebrow>
+                  <div className="flex flex-wrap gap-2">
+                    {stats.imunidades.map((r) => (
+                      <Pill key={r} color={colors.purple}>{r}</Pill>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
-          {stats.imunidades?.length ? (
-            <div className="space-y-1">
-              <Eyebrow>Imunidades</Eyebrow>
-              <div className="flex flex-wrap gap-2">
-                {stats.imunidades.map((r) => (
-                  <Pill key={r} color={colors.purple}>{r}</Pill>
-                ))}
-              </div>
-            </div>
-          ) : null}
+
           {stats.pericias?.length ? (
-            <div className="space-y-1">
-              <Eyebrow>Perícias</Eyebrow>
+            <div className="space-y-2 border-t border-guild-border pt-4">
+              <Eyebrow>🎯 Perícias</Eyebrow>
               <div className="flex flex-wrap gap-2">
                 {stats.pericias.map((p) => (
                   <Pill key={p.nome} color={colors.green}>{formatNpcSkill(p)}</Pill>
@@ -206,10 +220,11 @@ export function NpcDetail({
               </div>
             </div>
           ) : null}
+
           {stats.habilidades?.length ? (
-            <div className="space-y-1">
-              <Eyebrow>Habilidades</Eyebrow>
-              <div className="space-y-1 text-sm text-guild-muted">
+            <div className="space-y-2 border-t border-guild-border pt-4">
+              <Eyebrow>✨ Habilidades</Eyebrow>
+              <div className="space-y-2 text-sm leading-relaxed text-guild-muted">
                 {stats.habilidades.map((h) => (
                   <p key={h.nome}>
                     <strong className="text-guild-gold">{h.nome}</strong>
@@ -219,36 +234,74 @@ export function NpcDetail({
               </div>
             </div>
           ) : null}
+
           {stats.ataques?.length ? (
-            <div className="space-y-1 border-t border-guild-border pt-3 text-sm text-guild-muted">
-              <Eyebrow>Ataques</Eyebrow>
-              {stats.ataques.map((a) => (
-                <p key={a.name}>
-                  <strong className="text-guild-gold">{a.name}</strong>
-                  {a.bonus ? ` ${a.bonus}` : ""}
-                  {a.damage?.length ? ` — ${formatNpcDamage(a.damage)}` : ""}
-                  {a.critico ? ` (crítico ${a.critico})` : ""}
-                </p>
-              ))}
+            <div className="space-y-2 border-t border-guild-border pt-4">
+              <Eyebrow>⚔️ Ataques</Eyebrow>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {stats.ataques.map((a) => (
+                  <div
+                    key={a.name}
+                    className="rounded-lg border border-guild-border bg-guild-border/10 p-3"
+                  >
+                    <p className="flex items-baseline justify-between gap-2">
+                      <strong className="font-heading text-sm text-guild-gold">
+                        {a.name}
+                      </strong>
+                      {a.bonus ? (
+                        <span className="shrink-0 text-xs text-guild-muted">
+                          {a.bonus}
+                        </span>
+                      ) : null}
+                    </p>
+                    {a.damage?.length || a.critico ? (
+                      <p className="mt-1 text-xs text-guild-muted">
+                        {a.damage?.length ? formatNpcDamage(a.damage) : null}
+                        {a.critico ? ` · Crítico ${a.critico}` : ""}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
+
           {stats.magias?.length ? (
-            <div className="space-y-1 border-t border-guild-border pt-3 text-sm text-guild-muted">
-              <Eyebrow>Magias</Eyebrow>
-              {stats.magias.map((m) => {
-                const savingThrow = formatNpcSavingThrow(m.resistencia);
-                return (
-                  <p key={m.nome}>
-                    <strong className="text-guild-gold">{m.nome}</strong>
-                    {m.tipo ? ` (${m.tipo})` : ""}
-                    {m.area ? ` — Área: ${m.area}` : ""}
-                    {savingThrow ? ` — Resistência: ${savingThrow}` : ""}
-                    {m.resistencia?.sucesso ? ` — Sucesso: ${m.resistencia.sucesso}` : ""}
-                    {m.resistencia?.falha ? ` — Falha: ${m.resistencia.falha}` : ""}
-                    {m.efeito ? ` — ${m.efeito}` : ""}
-                  </p>
-                );
-              })}
+            <div className="space-y-2 border-t border-guild-border pt-4">
+              <Eyebrow>🔮 Magias</Eyebrow>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {stats.magias.map((m) => {
+                  const savingThrow = formatNpcSavingThrow(m.resistencia);
+                  return (
+                    <div
+                      key={m.nome}
+                      className="rounded-lg border border-guild-border bg-guild-border/10 p-3"
+                    >
+                      <p className="flex items-baseline justify-between gap-2">
+                        <strong className="font-heading text-sm text-guild-gold">
+                          {m.nome}
+                        </strong>
+                        {m.tipo ? (
+                          <span className="shrink-0 text-xs text-guild-muted">
+                            {m.tipo}
+                          </span>
+                        ) : null}
+                      </p>
+                      <div className="mt-1 space-y-0.5 text-xs text-guild-muted">
+                        {m.area ? <p>Área: {m.area}</p> : null}
+                        {savingThrow ? <p>Resistência: {savingThrow}</p> : null}
+                        {m.resistencia?.sucesso ? (
+                          <p>Sucesso: {m.resistencia.sucesso}</p>
+                        ) : null}
+                        {m.resistencia?.falha ? (
+                          <p>Falha: {m.resistencia.falha}</p>
+                        ) : null}
+                        {m.efeito ? <p>{m.efeito}</p> : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
         </Panel>
@@ -319,10 +372,21 @@ export function NpcDetail({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  icon,
+  label,
+  value,
+}: {
+  icon?: string;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-lg border border-guild-border bg-guild-border/10 p-2 text-center">
-      <p className="font-heading text-lg font-bold text-guild-gold">{value}</p>
+      <p className="font-heading text-lg font-bold leading-tight text-guild-gold">
+        {icon ? <span aria-hidden>{icon} </span> : null}
+        {value}
+      </p>
       <p className="text-[10px] uppercase tracking-wide text-guild-muted">{label}</p>
     </div>
   );
