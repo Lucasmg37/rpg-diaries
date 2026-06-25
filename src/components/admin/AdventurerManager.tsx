@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
+  ConfirmDialog,
   Field,
   Modal,
   Select,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui";
 import type { Adventurer } from "@/core/entities/adventurer";
 import type { FullGuild } from "@/core/entities/views";
-import { getAdminGuild, sendJson } from "@/lib/admin-client";
+import { deleteAdventurer, getAdminGuild, sendJson } from "@/lib/admin-client";
 import { adventurerClassLabel, adventurerLevel, adventurerStatusLabel } from "@/lib/adventurer-view";
 
 const EMPTY = {
@@ -35,6 +36,8 @@ export function AdventurerManager() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Adventurer | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   function load() {
     return getAdminGuild()
@@ -99,6 +102,22 @@ export function AdventurerManager() {
     }
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteAdventurer(adventureId, deleteTarget.id);
+      if (editingId === deleteTarget.id) closeForm();
+      setDeleteTarget(null);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (error && !guild) return <Alert tone="error">{error}</Alert>;
   if (!guild)
     return <p className="py-12 text-center text-sm text-guild-muted">Carregando…</p>;
@@ -119,6 +138,8 @@ export function AdventurerManager() {
           + Novo aventureiro
         </Button>
       </div>
+
+      {error && !formOpen ? <Alert tone="error">{error}</Alert> : null}
 
       {guild.adventures.length > 1 ? (
         <Select
@@ -172,9 +193,29 @@ export function AdventurerManager() {
             >
               Editar
             </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget(a);
+              }}
+            >
+              Excluir
+            </Button>
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Excluir aventureiro"
+        description={`Esta ação é irreversível e removerá permanentemente o aventureiro "${deleteTarget?.name}". A exclusão é bloqueada se ele participar de alguma sessão.`}
+        confirmText={deleteTarget?.name ?? ""}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       <Modal
         open={formOpen}

@@ -6,6 +6,7 @@ import {
   Alert,
   Button,
   CheckboxOption,
+  ConfirmDialog,
   Field,
   Modal,
   Select,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui";
 import type { LooseEnd } from "@/core/entities/loose-end";
 import type { FullGuild } from "@/core/entities/views";
-import { getAdminGuild, sendJson } from "@/lib/admin-client";
+import { deleteLooseEnd, getAdminGuild, sendJson } from "@/lib/admin-client";
 
 const EMPTY = {
   title: "",
@@ -32,6 +33,8 @@ export function LooseEndManager() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<LooseEnd | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   function load() {
     return getAdminGuild()
@@ -95,6 +98,22 @@ export function LooseEndManager() {
     }
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteLooseEnd(adventureId, deleteTarget.id);
+      if (editingId === deleteTarget.id) closeForm();
+      setDeleteTarget(null);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (error && !guild) return <Alert tone="error">{error}</Alert>;
   if (!guild)
     return <p className="py-12 text-center text-sm text-guild-muted">Carregando…</p>;
@@ -115,6 +134,8 @@ export function LooseEndManager() {
           + Novo fio solto
         </Button>
       </div>
+
+      {error && !formOpen ? <Alert tone="error">{error}</Alert> : null}
 
       {guild.adventures.length > 1 ? (
         <Select
@@ -151,9 +172,22 @@ export function LooseEndManager() {
             <Button type="button" variant="ghost" onClick={() => startEdit(l)}>
               Editar
             </Button>
+            <Button type="button" variant="ghost" onClick={() => setDeleteTarget(l)}>
+              Excluir
+            </Button>
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Excluir fio solto"
+        description={`Esta ação é irreversível e removerá permanentemente o fio solto "${deleteTarget?.title}". A exclusão é bloqueada se ele estiver vinculado a alguma sessão.`}
+        confirmText={deleteTarget?.title ?? ""}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       <Modal
         open={formOpen}

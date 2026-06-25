@@ -94,6 +94,7 @@ export default function AdminLayout({
 
 const NAV = [
   { href: "/admin/dashboard", label: "Painel" },
+  { href: "/admin/management/adventures", label: "Aventuras" },
   { href: "/admin/management/sessions", label: "Sessões" },
   { href: "/admin/management/adventurers", label: "Aventureiros" },
   { href: "/admin/management/npcs", label: "NPCs & Bosses" },

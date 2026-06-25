@@ -40,4 +40,12 @@ export class FirestoreLooseEndRepository implements LooseEndRepository {
     await ref.set(patch, { merge: true });
     return { ...mapLooseEnd(snap as never), ...patch };
   }
+
+  async delete(guildId: string, adventureId: string, id: string): Promise<void> {
+    const ref = looseEndsCol(this.db, guildId, adventureId).doc(id);
+    const snap = await ref.get();
+    if (!snap.exists)
+      throw new NotFoundError(`Fio solto "${id}" não encontrado.`);
+    await ref.delete();
+  }
 }

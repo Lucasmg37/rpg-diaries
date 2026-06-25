@@ -13,4 +13,5 @@ export interface LooseEndRepository {
     id: string,
     patch: UpdateLooseEndInput,
   ): Promise<LooseEnd>;
+  delete(guildId: string, adventureId: string, id: string): Promise<void>;
 }

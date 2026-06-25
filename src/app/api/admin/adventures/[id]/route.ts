@@ -2,14 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getMasterGuildId } from "@/adapters/config/master-config";
 import { getRepositories } from "@/adapters/config/repository-factory";
-import type { UpdateLooseEndInput } from "@/core/entities/loose-end";
-import { deleteLooseEnd } from "@/core/usecases/delete-loose-end";
-import { updateLooseEnd } from "@/core/usecases/update-loose-end";
+import type { UpdateAdventureInput } from "@/core/entities/adventure";
+import { deleteAdventure } from "@/core/usecases/delete-adventure";
+import { updateAdventure } from "@/core/usecases/update-adventure";
 import { getMasterSession, unauthorized } from "@/lib/auth-middleware";
 import { apiError } from "@/lib/api-response";
-import { buildLooseEndInput } from "@/lib/admin-serializers";
+import { buildAdventurePatch } from "@/lib/admin-serializers";
 
-/** PATCH /api/admin/loose-ends/[id] — atualiza um fio solto (requer adventureId). */
+/** PATCH /api/admin/adventures/[id] — atualiza nome/descrição/ordem de uma aventura. */
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -21,24 +21,19 @@ export async function PATCH(
     string,
     unknown
   > | null;
-  if (!body || body.adventureId == null) {
+  if (!body) {
     return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
   }
 
   const guildId = getMasterGuildId();
-  const adventureId = String(body.adventureId);
-  const { guildId: _g, adventureId: _a, ...patch } = buildLooseEndInput(
-    body,
-    guildId,
-  );
+  const patch = buildAdventurePatch(body);
 
   try {
-    const updated = await updateLooseEnd(
+    const updated = await updateAdventure(
       getRepositories(),
       guildId,
-      adventureId,
       id,
-      patch as UpdateLooseEndInput,
+      patch as UpdateAdventureInput,
     );
     return NextResponse.json(updated);
   } catch (e) {
@@ -46,7 +41,7 @@ export async function PATCH(
   }
 }
 
-/** DELETE /api/admin/loose-ends/[id]?adventureId= — exclui um fio solto. */
+/** DELETE /api/admin/adventures/[id] — exclui uma aventura (bloqueado se tiver conteúdo). */
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -54,16 +49,9 @@ export async function DELETE(
   if (!(await getMasterSession(req))) return unauthorized();
 
   const { id } = await params;
-  const adventureId = req.nextUrl.searchParams.get("adventureId");
-  if (!adventureId) {
-    return NextResponse.json(
-      { error: "Parâmetro adventureId é obrigatório." },
-      { status: 400 },
-    );
-  }
 
   try {
-    await deleteLooseEnd(getRepositories(), getMasterGuildId(), adventureId, id);
+    await deleteAdventure(getRepositories(), getMasterGuildId(), id);
     return new NextResponse(null, { status: 204 });
   } catch (e) {
     return apiError(e);

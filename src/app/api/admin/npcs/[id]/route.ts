@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getMasterGuildId } from "@/adapters/config/master-config";
 import { getRepositories } from "@/adapters/config/repository-factory";
+import { deleteNpc } from "@/core/usecases/delete-npc";
 import { updateNpc } from "@/core/usecases/update-npc";
 import { getMasterSession, unauthorized } from "@/lib/auth-middleware";
 import { apiError } from "@/lib/api-response";
@@ -89,7 +90,7 @@ export async function DELETE(
   }
 
   try {
-    await getRepositories().npcs.delete(getMasterGuildId(), adventureId, id);
+    await deleteNpc(getRepositories(), getMasterGuildId(), adventureId, id);
     return new NextResponse(null, { status: 204 });
   } catch (e) {
     return apiError(e);

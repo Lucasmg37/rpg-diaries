@@ -1,4 +1,8 @@
 import type {
+  CreateAdventureInput,
+  UpdateAdventureInput,
+} from "@/core/entities/adventure";
+import type {
   CreateAdventurerInput,
   UpdateAdventurerInput,
 } from "@/core/entities/adventurer";
@@ -33,6 +37,41 @@ import type {
  * handlers HTTP (GET/POST/…) em route.ts.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+/** Gera um slug a partir do nome (usado nas URLs públicas da aventura). */
+export function slugify(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function buildAdventureInput(
+  body: Record<string, any>,
+  guildId: string,
+): CreateAdventureInput {
+  const name = String(body.name ?? "");
+  return {
+    guildId,
+    name,
+    slug: body.slug ? String(body.slug) : slugify(name),
+    description: String(body.description ?? ""),
+    order: Number(body.order ?? 0),
+  };
+}
+
+export function buildAdventurePatch(
+  body: Record<string, any>,
+): UpdateAdventureInput {
+  const p: UpdateAdventureInput = {};
+  if ("name" in body) p.name = String(body.name);
+  if ("slug" in body) p.slug = body.slug ? String(body.slug) : undefined;
+  if ("description" in body) p.description = String(body.description);
+  if ("order" in body) p.order = Number(body.order);
+  return p;
+}
 
 export function buildSessionInput(
   body: Record<string, any>,

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
+  ConfirmDialog,
   Eyebrow,
   Field,
   Modal,
@@ -22,7 +23,13 @@ import type {
   NpcSpell,
 } from "@/core/entities/npc";
 import type { FullGuild } from "@/core/entities/views";
-import { getAdminGuild, listAdminNpcs, sendJson } from "@/lib/admin-client";
+import {
+  deleteNpc,
+  getAdminGuild,
+  listAdminNpcs,
+  sendJson,
+} from "@/lib/admin-client";
+import { confirmDiscard, useDirtyGuard } from "@/lib/use-dirty-guard";
 import { npcKindLabel, npcStatusLabel } from "@/lib/npc-view";
 
 const ATRIBUTOS: { key: AtributoKey; label: string }[] = [
@@ -98,6 +105,15 @@ export function NpcManager() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Npc | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [formVersion, setFormVersion] = useState(0);
+
+  const { dirty, markClean } = useDirtyGuard(form);
+  useEffect(() => {
+    markClean();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formVersion]);
 
   function loadGuild() {
     return getAdminGuild()
@@ -165,14 +181,20 @@ export function NpcManager() {
       })),
     });
     setFormOpen(true);
+    setFormVersion((v) => v + 1);
   }
   function reset() {
     setEditingId(null);
     setForm({ ...EMPTY, atributos: { ...EMPTY_ATTRIBUTES } });
+    setFormVersion((v) => v + 1);
   }
   function closeForm() {
     reset();
     setFormOpen(false);
+  }
+  function guardedClose() {
+    if (!confirmDiscard(dirty)) return;
+    closeForm();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -249,6 +271,22 @@ export function NpcManager() {
     }
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteNpc(adventureId, deleteTarget.id);
+      if (editingId === deleteTarget.id) closeForm();
+      setDeleteTarget(null);
+      await loadNpcs(adventureId);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (error && !guild) return <Alert tone="error">{error}</Alert>;
   if (!guild)
     return <p className="py-12 text-center text-sm text-guild-muted">Carregando…</p>;
@@ -269,6 +307,8 @@ export function NpcManager() {
           + Novo NPC/Boss
         </Button>
       </div>
+
+      {error && !formOpen ? <Alert tone="error">{error}</Alert> : null}
 
       {guild.adventures.length > 1 ? (
         <Select
@@ -323,6 +363,16 @@ export function NpcManager() {
             >
               Editar
             </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget(n);
+              }}
+            >
+              Excluir
+            </Button>
           </div>
         ))}
         {npcs.length === 0 ? (
@@ -332,9 +382,19 @@ export function NpcManager() {
         ) : null}
       </div>
 
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Excluir NPC/Boss"
+        description={`Esta ação é irreversível e removerá permanentemente "${deleteTarget?.name}". A exclusão é bloqueada se ele estiver referenciado em alguma sessão ou roteiro.`}
+        confirmText={deleteTarget?.name ?? ""}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
       <Modal
         open={formOpen}
-        onClose={closeForm}
+        onClose={guardedClose}
         title={editingId ? "Editar NPC/Boss" : "Novo NPC/Boss"}
         maxWidth="max-w-4xl"
       >
@@ -832,7 +892,7 @@ export function NpcManager() {
             <Button type="submit" disabled={submitting || !form.name.trim()}>
               {submitting ? "Salvando…" : editingId ? "Salvar" : "Adicionar"}
             </Button>
-            <Button type="button" variant="ghost" onClick={closeForm}>
+            <Button type="button" variant="ghost" onClick={guardedClose}>
               Cancelar
             </Button>
           </div>

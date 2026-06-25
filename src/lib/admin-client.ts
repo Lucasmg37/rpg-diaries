@@ -71,6 +71,45 @@ export async function deleteStoryPlan(
   }
 }
 
+/** Exclui uma aventura (bloqueado se ela tiver conteúdo cadastrado). */
+export async function deleteAdventure(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/adventures/${id}`, { method: "DELETE" });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `Erro ${res.status}.`);
+  }
+}
+
+/** Exclui um aventureiro (requer adventureId). */
+export async function deleteAdventurer(
+  adventureId: string,
+  id: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/admin/adventurers/${id}?adventureId=${encodeURIComponent(adventureId)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `Erro ${res.status}.`);
+  }
+}
+
+/** Exclui um fio solto (requer adventureId). */
+export async function deleteLooseEnd(
+  adventureId: string,
+  id: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/admin/loose-ends/${id}?adventureId=${encodeURIComponent(adventureId)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `Erro ${res.status}.`);
+  }
+}
+
 /** Aventureiro + timeline completa de eventos (área logada, requer adventureId). */
 export async function getAdventurerTimeline(
   adventureId: string,

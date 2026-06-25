@@ -13,4 +13,5 @@ export interface AdventurerRepository {
     id: string,
     patch: AdventurerRepositoryPatch,
   ): Promise<Adventurer>;
+  delete(guildId: string, adventureId: string, id: string): Promise<void>;
 }

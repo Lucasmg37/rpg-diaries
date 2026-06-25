@@ -18,3 +18,11 @@ export class ValidationError extends Error {
     this.name = "ValidationError";
   }
 }
+
+/** Exclusão bloqueada por referência de outra entidade → 409. */
+export class ConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConflictError";
+  }
+}

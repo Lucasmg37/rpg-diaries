@@ -42,4 +42,12 @@ export class FirestoreAdventurerRepository implements AdventurerRepository {
     await ref.set(patch, { merge: true });
     return { ...mapAdventurer(snap as never), ...patch };
   }
+
+  async delete(guildId: string, adventureId: string, id: string): Promise<void> {
+    const ref = adventurersCol(this.db, guildId, adventureId).doc(id);
+    const snap = await ref.get();
+    if (!snap.exists)
+      throw new NotFoundError(`Aventureiro "${id}" não encontrado.`);
+    await ref.delete();
+  }
 }

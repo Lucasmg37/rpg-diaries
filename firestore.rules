@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Defesa em profundidade: toda a leitura/escrita da app passa pelo Admin SDK
+// (rotas /api, que ignoram estas regras). Client-side nunca acessa o Firestore
+// diretamente, então aqui é deny-all.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

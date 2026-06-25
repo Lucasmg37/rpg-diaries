@@ -11,3 +11,9 @@ export interface Adventure {
   order: number;
   createdAt: Date;
 }
+
+export type CreateAdventureInput = Omit<Adventure, "id" | "createdAt">;
+
+export type UpdateAdventureInput = Partial<
+  Omit<Adventure, "id" | "guildId" | "createdAt">
+>;

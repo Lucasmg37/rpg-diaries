@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Alert,
@@ -14,8 +14,9 @@ import {
   Select,
   TextArea,
 } from "@/components/ui";
+import type { Adventurer } from "@/core/entities/adventurer";
 import type { LooseEnd } from "@/core/entities/loose-end";
-import type { Npc } from "@/core/entities/npc";
+import type { Npc, NpcKind } from "@/core/entities/npc";
 import type { ParticipantState } from "@/core/entities/session-participant";
 import type { FullGuild, FullSession } from "@/core/entities/views";
 import {
@@ -24,6 +25,7 @@ import {
   listAdminNpcs,
   sendJson,
 } from "@/lib/admin-client";
+import { confirmDiscard, useDirtyGuard } from "@/lib/use-dirty-guard";
 import { npcKindLabel } from "@/lib/npc-view";
 
 const EMPTY_LOOSE_END = {
@@ -32,6 +34,23 @@ const EMPTY_LOOSE_END = {
   description: "",
   color: "#a07a40",
   icon: "🧵",
+};
+
+const EMPTY_ADVENTURER = {
+  name: "",
+  className: "",
+  icon: "🧝",
+  background: "",
+  goal: "",
+  sheetUrl: "",
+};
+
+const EMPTY_NPC = {
+  kind: "npc" as NpcKind,
+  name: "",
+  icon: "🧙",
+  role: "",
+  description: "",
 };
 
 type ParticipantDraft = {
@@ -57,6 +76,8 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [readyTick, setReadyTick] = useState(0);
+  const initializedRef = useRef(false);
 
   // Campos escalares
   const [adventureId, setAdventureId] = useState("");
@@ -81,6 +102,56 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
   const [newLE, setNewLE] = useState({ ...EMPTY_LOOSE_END });
   const [creatingLE, setCreatingLE] = useState(false);
   const [leError, setLeError] = useState("");
+
+  // Aventureiros criados inline nesta sessão.
+  const [showNewAdv, setShowNewAdv] = useState(false);
+  const [newAdv, setNewAdv] = useState({ ...EMPTY_ADVENTURER });
+  const [creatingAdv, setCreatingAdv] = useState(false);
+  const [advError, setAdvError] = useState("");
+
+  // NPCs/Bosses criados inline nesta sessão (ainda não vieram da listagem da aventura).
+  const [showNewNpc, setShowNewNpc] = useState(false);
+  const [newNpc, setNewNpc] = useState({ ...EMPTY_NPC });
+  const [creatingNpc, setCreatingNpc] = useState(false);
+  const [npcError, setNpcError] = useState("");
+
+  const sessionSnapshot = useMemo(
+    () => ({
+      adventureId,
+      title,
+      number,
+      icon,
+      summary,
+      masterNotes,
+      closingQuote,
+      closingTagline,
+      tags,
+      timeline,
+      participants,
+      looseEndIds,
+      npcIds,
+    }),
+    [
+      adventureId,
+      title,
+      number,
+      icon,
+      summary,
+      masterNotes,
+      closingQuote,
+      closingTagline,
+      tags,
+      timeline,
+      participants,
+      looseEndIds,
+      npcIds,
+    ],
+  );
+  const { dirty, markClean } = useDirtyGuard(sessionSnapshot);
+  useEffect(() => {
+    if (readyTick > 0) markClean();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readyTick]);
 
   const editingSession: FullSession | undefined = useMemo(() => {
     if (!guild || !sessionId) return undefined;
@@ -175,6 +246,10 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
         currentAdventure.looseEnds.some((l) => l.id === id),
       ),
     );
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      setReadyTick((t) => t + 1);
+    }
   }, [currentAdventure, editingSession]);
 
   // Descarta NPCs selecionados que não pertencem mais à aventura atual.
@@ -206,6 +281,58 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
       setLeError((e as Error).message);
     } finally {
       setCreatingLE(false);
+    }
+  }
+
+  async function handleCreateAdventurer() {
+    if (!newAdv.name.trim()) return;
+    setCreatingAdv(true);
+    setAdvError("");
+    try {
+      const created = await sendJson<Adventurer>("/api/admin/adventurers", "POST", {
+        ...newAdv,
+        adventureId,
+        level: 1,
+      });
+      setParticipants((prev) => [
+        ...prev,
+        {
+          adventurerId: created.id,
+          name: created.name,
+          icon: created.icon,
+          include: true,
+          sessionBadge: "",
+          sessionState: "new",
+          sessionNote: "",
+        },
+      ]);
+      setNewAdv({ ...EMPTY_ADVENTURER });
+      setShowNewAdv(false);
+    } catch (e) {
+      setAdvError((e as Error).message);
+    } finally {
+      setCreatingAdv(false);
+    }
+  }
+
+  async function handleCreateNpc() {
+    if (!newNpc.name.trim()) return;
+    setCreatingNpc(true);
+    setNpcError("");
+    try {
+      const created = await sendJson<Npc>("/api/admin/npcs", "POST", {
+        ...newNpc,
+        adventureId,
+        role: newNpc.role || undefined,
+      });
+      setNpcs((prev) => [...prev, created]);
+      setNpcIds((prev) => [...prev, created.id]); // já associa à sessão
+      setNewNpc({ ...EMPTY_NPC });
+      setShowNewNpc(false);
+    } catch (e) {
+      setNpcError((e as Error).message);
+    } finally {
+      setCreatingNpc(false);
     }
   }
 
@@ -407,6 +534,71 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
               ) : null}
             </div>
           ))
+        )}
+
+        {/* Criação inline de aventureiro */}
+        {showNewAdv ? (
+          <div className="space-y-3 rounded-md border border-guild-border p-3">
+            <Eyebrow>Novo aventureiro</Eyebrow>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                id="nadv-name"
+                label="Nome"
+                value={newAdv.name}
+                onChange={(e) => setNewAdv({ ...newAdv, name: e.target.value })}
+              />
+              <Field
+                id="nadv-class"
+                label="Classe"
+                value={newAdv.className}
+                onChange={(e) => setNewAdv({ ...newAdv, className: e.target.value })}
+              />
+              <Field
+                id="nadv-icon"
+                label="Ícone"
+                value={newAdv.icon}
+                onChange={(e) => setNewAdv({ ...newAdv, icon: e.target.value })}
+              />
+              <Field
+                id="nadv-sheet"
+                label="URL da ficha"
+                value={newAdv.sheetUrl}
+                onChange={(e) => setNewAdv({ ...newAdv, sheetUrl: e.target.value })}
+              />
+            </div>
+            <TextArea
+              id="nadv-bg"
+              label="História"
+              rows={2}
+              value={newAdv.background}
+              onChange={(e) => setNewAdv({ ...newAdv, background: e.target.value })}
+            />
+            {advError ? <Alert tone="error">{advError}</Alert> : null}
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                onClick={handleCreateAdventurer}
+                disabled={creatingAdv || !newAdv.name.trim()}
+              >
+                {creatingAdv ? "Criando…" : "Criar e incluir"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setShowNewAdv(false);
+                  setNewAdv({ ...EMPTY_ADVENTURER });
+                  setAdvError("");
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button type="button" variant="ghost" onClick={() => setShowNewAdv(true)}>
+            + Novo aventureiro
+          </Button>
         )}
       </Panel>
 
@@ -639,6 +831,76 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
           aventureiros o viram (e liberar a ficha pública dele), use o evento
           de aparição na página do NPC.
         </p>
+
+        {/* Criação inline de NPC/Boss */}
+        {showNewNpc ? (
+          <div className="space-y-3 rounded-md border border-guild-border p-3">
+            <Eyebrow>Novo NPC/Boss</Eyebrow>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Select
+                id="nnpc-kind"
+                label="Tipo"
+                value={newNpc.kind}
+                onChange={(e) =>
+                  setNewNpc({ ...newNpc, kind: e.target.value as NpcKind })
+                }
+              >
+                <option value="npc">NPC</option>
+                <option value="boss">Boss</option>
+              </Select>
+              <Field
+                id="nnpc-name"
+                label="Nome"
+                value={newNpc.name}
+                onChange={(e) => setNewNpc({ ...newNpc, name: e.target.value })}
+              />
+              <Field
+                id="nnpc-icon"
+                label="Ícone"
+                value={newNpc.icon}
+                onChange={(e) => setNewNpc({ ...newNpc, icon: e.target.value })}
+              />
+              <Field
+                id="nnpc-role"
+                label="Papel"
+                value={newNpc.role}
+                onChange={(e) => setNewNpc({ ...newNpc, role: e.target.value })}
+              />
+            </div>
+            <TextArea
+              id="nnpc-desc"
+              label="Descrição"
+              rows={2}
+              value={newNpc.description}
+              onChange={(e) => setNewNpc({ ...newNpc, description: e.target.value })}
+            />
+            {npcError ? <Alert tone="error">{npcError}</Alert> : null}
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                onClick={handleCreateNpc}
+                disabled={creatingNpc || !newNpc.name.trim()}
+              >
+                {creatingNpc ? "Criando…" : "Criar e associar"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setShowNewNpc(false);
+                  setNewNpc({ ...EMPTY_NPC });
+                  setNpcError("");
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button type="button" variant="ghost" onClick={() => setShowNewNpc(true)}>
+            + Novo NPC/Boss
+          </Button>
+        )}
       </Panel>
 
       {/* Notas do mestre + encerramento */}
@@ -675,7 +937,10 @@ export function SessionForm({ sessionId }: { sessionId?: string }) {
         <Button
           type="button"
           variant="ghost"
-          onClick={() => router.push("/admin/management/sessions")}
+          onClick={() => {
+            if (!confirmDiscard(dirty)) return;
+            router.push("/admin/management/sessions");
+          }}
         >
           Cancelar
         </Button>

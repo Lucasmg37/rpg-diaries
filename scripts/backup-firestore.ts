@@ -36,6 +36,9 @@ async function dumpAdventure(db: Firestore, guildId: string, adventureId: string
     adventurers: await dumpCollection(base.collection("adventurers")),
     looseEnds: await dumpCollection(base.collection("looseEnds")),
     storyPlans: await dumpCollection(base.collection("storyPlans")),
+    adventurerEvents: await dumpCollection(base.collection("adventurerEvents")),
+    npcs: await dumpCollection(base.collection("npcs")),
+    npcEvents: await dumpCollection(base.collection("npcEvents")),
   };
 }
 

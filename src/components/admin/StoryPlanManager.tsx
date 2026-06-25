@@ -30,6 +30,8 @@ import {
   listStoryPlans,
   sendJson,
 } from "@/lib/admin-client";
+import { confirmDiscard, useDirtyGuard } from "@/lib/use-dirty-guard";
+import { useDragReorder } from "@/lib/use-drag-reorder";
 import { npcKindLabel } from "@/lib/npc-view";
 
 const BLOCK_LABELS: Record<SceneBlock["type"], string> = {
@@ -116,6 +118,18 @@ export function StoryPlanManager({
   const [deleteTarget, setDeleteTarget] = useState<StoryPlan | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [formVersion, setFormVersion] = useState(0);
+
+  const { dirty, markClean } = useDirtyGuard(form);
+  useEffect(() => {
+    markClean();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formVersion]);
+
+  const { list: orderedPlans, dragPropsFor } = useDragReorder(plans, async (orderedIds) => {
+    await sendJson("/api/admin/story-plans/reorder", "POST", { adventureId, ids: orderedIds });
+    await loadPlans(adventureId);
+  });
 
   useEffect(() => {
     getAdminGuild()
@@ -162,14 +176,20 @@ export function StoryPlanManager({
     setEditingId(p.id);
     setForm(planToForm(p));
     setFormOpen(true);
+    setFormVersion((v) => v + 1);
   }
   function reset() {
     setEditingId(null);
     setForm({ ...EMPTY_FORM });
+    setFormVersion((v) => v + 1);
   }
   function closeForm() {
     reset();
     setFormOpen(false);
+  }
+  function guardedClose() {
+    if (!confirmDiscard(dirty)) return;
+    closeForm();
   }
 
   async function handleDelete() {
@@ -178,7 +198,10 @@ export function StoryPlanManager({
     setError("");
     try {
       await deleteStoryPlan(adventureId, deleteTarget.id);
-      if (editingId === deleteTarget.id) closeForm();
+      if (editingId === deleteTarget.id) {
+        reset();
+        setFormOpen(false);
+      }
       setDeleteTarget(null);
       await loadPlans(adventureId);
     } catch (err) {
@@ -335,8 +358,15 @@ export function StoryPlanManager({
       ) : null}
 
       <div className="space-y-2">
-        {plans.map((p) => (
-          <div key={p.id} className="panel flex items-center gap-3 p-4">
+        {orderedPlans.map((p) => (
+          <div
+            key={p.id}
+            {...dragPropsFor(p.id)}
+            className="panel flex cursor-move items-center gap-3 p-4"
+          >
+            <span aria-hidden className="text-guild-muted">
+              ⠿
+            </span>
             <span className="flex-1">
               <span className="block font-heading text-sm font-semibold text-guild-gold">
                 {p.title}
@@ -375,7 +405,7 @@ export function StoryPlanManager({
 
       <Modal
         open={formOpen}
-        onClose={closeForm}
+        onClose={guardedClose}
         title={editingId ? "Editar roteiro" : "Novo roteiro"}
         maxWidth="max-w-4xl"
       >
@@ -725,7 +755,7 @@ export function StoryPlanManager({
             <Button type="submit" disabled={submitting || !form.title.trim()}>
               {submitting ? "Salvando…" : editingId ? "Salvar" : "Adicionar"}
             </Button>
-            <Button type="button" variant="ghost" onClick={closeForm}>
+            <Button type="button" variant="ghost" onClick={guardedClose}>
               Cancelar
             </Button>
           </div>

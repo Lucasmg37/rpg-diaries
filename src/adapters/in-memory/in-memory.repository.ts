@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
 
 import { NotFoundError } from "@/core/errors";
-import type { Adventure } from "@/core/entities/adventure";
+import type {
+  Adventure,
+  CreateAdventureInput,
+  UpdateAdventureInput,
+} from "@/core/entities/adventure";
 import type {
   Adventurer,
   AdventurerRepositoryPatch,
@@ -97,6 +101,30 @@ class InMemoryAdventureRepository implements AdventureRepository {
       .filter((a) => a.guildId === guildId)
       .sort((a, b) => a.order - b.order);
   }
+
+  async create(input: CreateAdventureInput): Promise<Adventure> {
+    const adventure: Adventure = { ...input, id: randomUUID(), createdAt: new Date() };
+    this.store.adventures.set(adventure.id, adventure);
+    return adventure;
+  }
+
+  async update(
+    guildId: string,
+    id: string,
+    patch: UpdateAdventureInput,
+  ): Promise<Adventure> {
+    const existing = this.store.adventures.get(id);
+    if (!existing) throw new NotFoundError(`Aventura "${id}" não encontrada.`);
+    const updated: Adventure = { ...existing, ...patch };
+    this.store.adventures.set(id, updated);
+    return updated;
+  }
+
+  async delete(_guildId: string, id: string): Promise<void> {
+    if (!this.store.adventures.delete(id)) {
+      throw new NotFoundError(`Aventura "${id}" não encontrada.`);
+    }
+  }
 }
 
 class InMemorySessionRepository implements SessionRepository {
@@ -184,6 +212,16 @@ class InMemoryAdventurerRepository implements AdventurerRepository {
     const updated: Adventurer = { ...existing, ...patch };
     this.store.adventurers.set(id, updated);
     return updated;
+  }
+
+  async delete(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+  ): Promise<void> {
+    if (!this.store.adventurers.delete(id)) {
+      throw new NotFoundError(`Aventureiro "${id}" não encontrado.`);
+    }
   }
 }
 
@@ -300,6 +338,16 @@ class InMemoryLooseEndRepository implements LooseEndRepository {
     const updated: LooseEnd = { ...existing, ...patch };
     this.store.looseEnds.set(id, updated);
     return updated;
+  }
+
+  async delete(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+  ): Promise<void> {
+    if (!this.store.looseEnds.delete(id)) {
+      throw new NotFoundError(`Fio solto "${id}" não encontrado.`);
+    }
   }
 }
 
