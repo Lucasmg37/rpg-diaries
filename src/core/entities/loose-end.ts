@@ -13,6 +13,8 @@ export interface LooseEnd {
   color: string;
   icon: string;
   resolved: boolean;
+  /** Notas do mestre — nunca exposto na página pública (ver `includeMasterNotes`). */
+  masterNotes?: string;
 }
 
 export type CreateLooseEndInput = Omit<LooseEnd, "id">;

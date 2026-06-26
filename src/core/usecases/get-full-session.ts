@@ -58,7 +58,12 @@ export function resolveFullSession(
   const resolvedLooseEnds: LooseEnd[] = [];
   for (const id of session.looseEndIds) {
     const looseEnd = looseEndsById.get(id);
-    if (looseEnd) resolvedLooseEnds.push(looseEnd);
+    if (!looseEnd) continue;
+    resolvedLooseEnds.push(
+      options.includeMasterNotes
+        ? looseEnd
+        : { ...looseEnd, masterNotes: undefined },
+    );
   }
 
   return {

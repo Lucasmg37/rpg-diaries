@@ -119,6 +119,7 @@ export function mapLooseEnd(snap: Snap): LooseEnd {
     color: d.color,
     icon: d.icon,
     resolved: d.resolved,
+    masterNotes: d.masterNotes ?? undefined,
   };
 }
 

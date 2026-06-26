@@ -32,7 +32,16 @@ export async function buildFullAdventure(
     )
     .sort((a, b) => a.number - b.number);
 
-  return { adventure, sessions: resolvedSessions, adventurers, looseEnds };
+  const publicLooseEnds = options.includeMasterNotes
+    ? looseEnds
+    : looseEnds.map((l) => ({ ...l, masterNotes: undefined }));
+
+  return {
+    adventure,
+    sessions: resolvedSessions,
+    adventurers,
+    looseEnds: publicLooseEnds,
+  };
 }
 
 /**

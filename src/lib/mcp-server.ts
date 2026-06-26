@@ -218,6 +218,10 @@ const looseEndSchema = {
     color: { type: "string" },
     icon: { type: "string" },
     resolved: { type: "boolean" },
+    masterNotes: {
+      type: "string",
+      description: "Só presente quando chamado com MCP_SERVICE_TOKEN.",
+    },
   },
   required: [
     "id",
@@ -1027,7 +1031,7 @@ const TOOLS: ToolDef[] = [
   {
     name: "createLooseEnd",
     description:
-      "Cria um fio solto / gancho narrativo numa aventura. Sessões depois o referenciam via looseEndIds. Requer MCP_SERVICE_TOKEN.",
+      "Cria um fio solto / gancho narrativo numa aventura (título/descrição públicos e masterNotes sigilosas). Sessões depois o referenciam via looseEndIds. Requer MCP_SERVICE_TOKEN.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1044,6 +1048,11 @@ const TOOLS: ToolDef[] = [
           type: "boolean",
           description: "Se o fio já foi resolvido. Padrão false.",
         },
+        masterNotes: {
+          type: "string",
+          description:
+            "Notas privadas do mestre. Nunca aparece na página pública.",
+        },
       },
       required: ["adventureId", "title"],
     },
@@ -1057,7 +1066,7 @@ const TOOLS: ToolDef[] = [
   {
     name: "updateLooseEnd",
     description:
-      "Atualiza um fio solto existente (campos parciais) — ex.: marcar `resolved: true` quando o gancho narrativo se resolve. Requer MCP_SERVICE_TOKEN.",
+      "Atualiza um fio solto existente (campos parciais, incl. masterNotes) — ex.: marcar `resolved: true` quando o gancho narrativo se resolve. Requer MCP_SERVICE_TOKEN.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1069,6 +1078,11 @@ const TOOLS: ToolDef[] = [
         color: { type: "string" },
         icon: { type: "string" },
         resolved: { type: "boolean" },
+        masterNotes: {
+          type: "string",
+          description:
+            "Notas privadas do mestre. Nunca aparece na página pública.",
+        },
       },
       required: ["adventureId", "looseEndId"],
     },

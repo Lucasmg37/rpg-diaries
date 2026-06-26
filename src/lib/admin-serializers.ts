@@ -208,6 +208,7 @@ export function buildLooseEndInput(
     color: String(body.color ?? "#a07a40"),
     icon: String(body.icon ?? ""),
     resolved: Boolean(body.resolved),
+    masterNotes: body.masterNotes ? String(body.masterNotes) : undefined,
   };
 }
 
@@ -222,6 +223,8 @@ export function buildLooseEndPatch(
   if ("color" in args) p.color = String(args.color);
   if ("icon" in args) p.icon = String(args.icon);
   if ("resolved" in args) p.resolved = Boolean(args.resolved);
+  if ("masterNotes" in args)
+    p.masterNotes = args.masterNotes ? String(args.masterNotes) : undefined;
   return p;
 }
 

@@ -23,6 +23,7 @@ const EMPTY = {
   color: "#a07a40",
   icon: "🧵",
   resolved: false,
+  masterNotes: "",
 };
 
 export function LooseEndManager() {
@@ -66,6 +67,7 @@ export function LooseEndManager() {
       color: l.color,
       icon: l.icon,
       resolved: l.resolved,
+      masterNotes: l.masterNotes ?? "",
     });
     setFormOpen(true);
   }
@@ -167,6 +169,7 @@ export function LooseEndManager() {
               </span>
               <span className="text-xs text-guild-muted">
                 {l.category} · {l.resolved ? "resolvido" : "em aberto"}
+                {l.masterNotes ? " · 🔒 notas do mestre" : ""}
               </span>
             </span>
             <Button type="button" variant="ghost" onClick={() => startEdit(l)}>
@@ -234,6 +237,13 @@ export function LooseEndManager() {
           >
             Resolvido
           </CheckboxOption>
+          <TextArea
+            id="le-master-notes"
+            label="Notas do mestre (privado — nunca aparece na página pública)"
+            rows={2}
+            value={form.masterNotes}
+            onChange={(e) => setForm({ ...form, masterNotes: e.target.value })}
+          />
 
           {error ? <Alert tone="error">{error}</Alert> : null}
 
