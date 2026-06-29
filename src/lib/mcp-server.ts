@@ -26,6 +26,14 @@ import { updateLooseEnd } from "@/core/usecases/update-loose-end";
 import { updateNpc } from "@/core/usecases/update-npc";
 import { updateSession } from "@/core/usecases/update-session";
 import { updateStoryPlan } from "@/core/usecases/update-story-plan";
+import { upsertStoryPlanScene } from "@/core/usecases/upsert-story-plan-scene";
+import { removeStoryPlanScene } from "@/core/usecases/remove-story-plan-scene";
+import { reorderStoryPlanScenes } from "@/core/usecases/reorder-story-plan-scenes";
+import { upsertSessionTimelineEntry } from "@/core/usecases/upsert-session-timeline-entry";
+import { removeSessionTimelineEntry } from "@/core/usecases/remove-session-timeline-entry";
+import { reorderSessionTimelineEntries } from "@/core/usecases/reorder-session-timeline-entries";
+import { upsertSessionParticipant } from "@/core/usecases/upsert-session-participant";
+import { removeSessionParticipant } from "@/core/usecases/remove-session-participant";
 import {
   buildAdventurerEventInput,
   buildAdventurerInput,
@@ -41,6 +49,9 @@ import {
   buildStoryNoteInput,
   buildStoryPlanInput,
   buildStoryPlanPatch,
+  normalizeParticipant,
+  normalizeScene,
+  normalizeTimelineEntry,
 } from "@/lib/admin-serializers";
 import { isMcpWriteAuthorized } from "@/lib/mcp-auth";
 
@@ -71,6 +82,22 @@ function stripMasterNotes(session: Session) {
 function stripNpcMasterFields(npc: Npc) {
   const { masterNotes: _omit, ...safe } = npc;
   return safe;
+}
+
+/** Resolve o adventureId de uma sessão pelo sessionId quando não informado. */
+async function resolveSessionAdventureId(
+  repos: ReturnType<typeof getRepositories>,
+  guildId: string,
+  sessionId: string,
+  providedAdventureId?: string,
+): Promise<string> {
+  if (providedAdventureId) return providedAdventureId;
+  const guild = await getFullGuild(repos, guildId);
+  const owner = guild?.adventures.find((a) =>
+    a.sessions.some((s) => s.id === sessionId),
+  );
+  if (!owner) throw new Error(`Sessão "${sessionId}" não encontrada.`);
+  return owner.adventure.id;
 }
 
 interface ToolDef {
@@ -105,12 +132,16 @@ const participantStateSchema = {
 const timelineEntrySchema = {
   type: "object",
   properties: {
+    id: {
+      type: "string",
+      description: "Id local, estável, usado para editar/remover/reordenar via MCP.",
+    },
     title: { type: "string" },
     body: { type: "string" },
     icon: { type: "string" },
     callout: { type: "string" },
   },
-  required: ["title", "body", "icon"],
+  required: ["id", "title", "body", "icon"],
 };
 
 const tagSchema = {
@@ -664,24 +695,9 @@ const TOOLS: ToolDef[] = [
         icon: { type: "string" },
         summary: { type: "string" },
         masterNotes: { type: "string" },
-        timeline: { type: "array", items: { type: "object" } },
-        tags: { type: "array", items: { type: "object" } },
-        participants: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              adventurerId: { type: "string" },
-              sessionBadge: { type: "string" },
-              sessionState: {
-                type: "string",
-                enum: ["normal", "suspicious", "fallen", "new"],
-              },
-              sessionNote: { type: "string" },
-            },
-            required: ["adventurerId", "sessionBadge"],
-          },
-        },
+        timeline: { type: "array", items: timelineEntrySchema },
+        tags: { type: "array", items: tagSchema },
+        participants: { type: "array", items: participantSchema },
         looseEndIds: { type: "array", items: { type: "string" } },
         closing: closingSchema,
       },
@@ -712,9 +728,9 @@ const TOOLS: ToolDef[] = [
         icon: { type: "string" },
         summary: { type: "string" },
         masterNotes: { type: "string" },
-        timeline: { type: "array", items: { type: "object" } },
-        tags: { type: "array", items: { type: "object" } },
-        participants: { type: "array", items: { type: "object" } },
+        timeline: { type: "array", items: timelineEntrySchema },
+        tags: { type: "array", items: tagSchema },
+        participants: { type: "array", items: participantSchema },
         looseEndIds: { type: "array", items: { type: "string" } },
         closing: closingSchema,
       },
@@ -727,15 +743,12 @@ const TOOLS: ToolDef[] = [
       const guildId = getMasterGuildId();
       const repos = getRepositories();
 
-      let adventureId = args.adventureId ? String(args.adventureId) : "";
-      if (!adventureId) {
-        const guild = await getFullGuild(repos, guildId);
-        const owner = guild?.adventures.find((a) =>
-          a.sessions.some((s) => s.id === sessionId),
-        );
-        if (!owner) throw new Error(`Sessão "${sessionId}" não encontrada.`);
-        adventureId = owner.adventure.id;
-      }
+      const adventureId = await resolveSessionAdventureId(
+        repos,
+        guildId,
+        sessionId,
+        args.adventureId ? String(args.adventureId) : undefined,
+      );
 
       const patch = buildSessionPatch(args);
       const updated = await updateSession(
@@ -744,6 +757,211 @@ const TOOLS: ToolDef[] = [
         adventureId,
         sessionId,
         patch,
+      );
+      return stripMasterNotes(updated);
+    },
+  },
+  {
+    name: "upsertSessionTimelineEntry",
+    description:
+      "Insere ou atualiza UMA entrada da timeline de uma sessão, sem precisar reenviar o array `timeline` inteiro. Se `entry.id` já existir na sessão, a entrada é substituída no lugar (ou movida, se `position` for informado); senão é inserida como nova. `position` (índice 0-based) permite inserir/mover a entrada em qualquer ordem — se omitido, entradas novas vão para o fim. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sessionId: { type: "string" },
+        adventureId: {
+          type: "string",
+          description: "Opcional; se omitido, é resolvido pelo sessionId.",
+        },
+        entry: timelineEntrySchema,
+        position: {
+          type: "number",
+          description:
+            "Índice 0-based onde a entrada deve entrar. Omitido = fim da lista (entrada nova) ou posição atual (entrada existente).",
+        },
+      },
+      required: ["sessionId", "entry"],
+    },
+    outputSchema: sessionSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const sessionId = String(args.sessionId);
+      const guildId = getMasterGuildId();
+      const repos = getRepositories();
+      const adventureId = await resolveSessionAdventureId(
+        repos,
+        guildId,
+        sessionId,
+        args.adventureId ? String(args.adventureId) : undefined,
+      );
+      const entry = normalizeTimelineEntry(args.entry ?? {});
+      const position =
+        args.position === undefined ? undefined : Number(args.position);
+      const updated = await upsertSessionTimelineEntry(
+        repos,
+        guildId,
+        adventureId,
+        sessionId,
+        entry,
+        position,
+      );
+      return stripMasterNotes(updated);
+    },
+  },
+  {
+    name: "removeSessionTimelineEntry",
+    description:
+      "Remove uma entrada da timeline de uma sessão pelo seu id. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sessionId: { type: "string" },
+        adventureId: {
+          type: "string",
+          description: "Opcional; se omitido, é resolvido pelo sessionId.",
+        },
+        entryId: { type: "string" },
+      },
+      required: ["sessionId", "entryId"],
+    },
+    outputSchema: sessionSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const sessionId = String(args.sessionId);
+      const guildId = getMasterGuildId();
+      const repos = getRepositories();
+      const adventureId = await resolveSessionAdventureId(
+        repos,
+        guildId,
+        sessionId,
+        args.adventureId ? String(args.adventureId) : undefined,
+      );
+      const entryId = String(args.entryId);
+      const updated = await removeSessionTimelineEntry(
+        repos,
+        guildId,
+        adventureId,
+        sessionId,
+        entryId,
+      );
+      return stripMasterNotes(updated);
+    },
+  },
+  {
+    name: "reorderSessionTimelineEntries",
+    description:
+      "Reordena as entradas da timeline de uma sessão a partir de uma lista de ids na ordem desejada (não precisa incluir todas; as omitidas mantêm sua ordem relativa ao final). Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sessionId: { type: "string" },
+        adventureId: {
+          type: "string",
+          description: "Opcional; se omitido, é resolvido pelo sessionId.",
+        },
+        entryIds: { type: "array", items: { type: "string" } },
+      },
+      required: ["sessionId", "entryIds"],
+    },
+    outputSchema: sessionSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const sessionId = String(args.sessionId);
+      const guildId = getMasterGuildId();
+      const repos = getRepositories();
+      const adventureId = await resolveSessionAdventureId(
+        repos,
+        guildId,
+        sessionId,
+        args.adventureId ? String(args.adventureId) : undefined,
+      );
+      const entryIds = Array.isArray(args.entryIds)
+        ? args.entryIds.map(String)
+        : [];
+      const updated = await reorderSessionTimelineEntries(
+        repos,
+        guildId,
+        adventureId,
+        sessionId,
+        entryIds,
+      );
+      return stripMasterNotes(updated);
+    },
+  },
+  {
+    name: "upsertSessionParticipant",
+    description:
+      "Insere ou atualiza UM participante de uma sessão (chave: `adventurerId`), sem precisar reenviar o array `participants` inteiro. Se já existir um participante com o mesmo `adventurerId`, ele é substituído; senão é adicionado. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sessionId: { type: "string" },
+        adventureId: {
+          type: "string",
+          description: "Opcional; se omitido, é resolvido pelo sessionId.",
+        },
+        participant: participantSchema,
+      },
+      required: ["sessionId", "participant"],
+    },
+    outputSchema: sessionSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const sessionId = String(args.sessionId);
+      const guildId = getMasterGuildId();
+      const repos = getRepositories();
+      const adventureId = await resolveSessionAdventureId(
+        repos,
+        guildId,
+        sessionId,
+        args.adventureId ? String(args.adventureId) : undefined,
+      );
+      const participant = normalizeParticipant(args.participant ?? {});
+      const updated = await upsertSessionParticipant(
+        repos,
+        guildId,
+        adventureId,
+        sessionId,
+        participant,
+      );
+      return stripMasterNotes(updated);
+    },
+  },
+  {
+    name: "removeSessionParticipant",
+    description:
+      "Remove um participante de uma sessão pelo `adventurerId`. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sessionId: { type: "string" },
+        adventureId: {
+          type: "string",
+          description: "Opcional; se omitido, é resolvido pelo sessionId.",
+        },
+        adventurerId: { type: "string" },
+      },
+      required: ["sessionId", "adventurerId"],
+    },
+    outputSchema: sessionSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const sessionId = String(args.sessionId);
+      const guildId = getMasterGuildId();
+      const repos = getRepositories();
+      const adventureId = await resolveSessionAdventureId(
+        repos,
+        guildId,
+        sessionId,
+        args.adventureId ? String(args.adventureId) : undefined,
+      );
+      const adventurerId = String(args.adventurerId);
+      const updated = await removeSessionParticipant(
+        repos,
+        guildId,
+        adventureId,
+        sessionId,
+        adventurerId,
       );
       return stripMasterNotes(updated);
     },
@@ -1211,6 +1429,99 @@ const TOOLS: ToolDef[] = [
         adventureId,
         storyPlanId,
         patch,
+      );
+    },
+  },
+  {
+    name: "upsertStoryPlanScene",
+    description:
+      "Insere ou atualiza UMA cena de um roteiro, sem precisar reenviar o array `scenes` inteiro. Se `scene.id` já existir no roteiro, a cena é substituída no lugar (ou movida, se `position` for informado); senão é inserida como nova. `position` (índice 0-based) permite inserir/mover a cena em qualquer ordem — se omitido, cenas novas vão para o fim. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        storyPlanId: { type: "string" },
+        adventureId: { type: "string" },
+        scene: sceneSchema,
+        position: {
+          type: "number",
+          description:
+            "Índice 0-based onde a cena deve entrar. Omitido = fim da lista (cena nova) ou posição atual (cena existente).",
+        },
+      },
+      required: ["storyPlanId", "adventureId", "scene"],
+    },
+    outputSchema: storyPlanSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const storyPlanId = String(args.storyPlanId);
+      const adventureId = String(args.adventureId);
+      const scene = normalizeScene(args.scene ?? {});
+      const position =
+        args.position === undefined ? undefined : Number(args.position);
+      return upsertStoryPlanScene(
+        getRepositories(),
+        getMasterGuildId(),
+        adventureId,
+        storyPlanId,
+        scene,
+        position,
+      );
+    },
+  },
+  {
+    name: "removeStoryPlanScene",
+    description: "Remove uma cena de um roteiro pelo seu id. Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        storyPlanId: { type: "string" },
+        adventureId: { type: "string" },
+        sceneId: { type: "string" },
+      },
+      required: ["storyPlanId", "adventureId", "sceneId"],
+    },
+    outputSchema: storyPlanSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const storyPlanId = String(args.storyPlanId);
+      const adventureId = String(args.adventureId);
+      const sceneId = String(args.sceneId);
+      return removeStoryPlanScene(
+        getRepositories(),
+        getMasterGuildId(),
+        adventureId,
+        storyPlanId,
+        sceneId,
+      );
+    },
+  },
+  {
+    name: "reorderStoryPlanScenes",
+    description:
+      "Reordena as cenas de um roteiro a partir de uma lista de ids na ordem desejada (não precisa incluir todas; as omitidas mantêm sua ordem relativa ao final). Requer MCP_SERVICE_TOKEN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        storyPlanId: { type: "string" },
+        adventureId: { type: "string" },
+        sceneIds: { type: "array", items: { type: "string" } },
+      },
+      required: ["storyPlanId", "adventureId", "sceneIds"],
+    },
+    outputSchema: storyPlanSchema,
+    requiresAuth: true,
+    run: async (args) => {
+      const storyPlanId = String(args.storyPlanId);
+      const adventureId = String(args.adventureId);
+      const sceneIds = Array.isArray(args.sceneIds)
+        ? args.sceneIds.map(String)
+        : [];
+      return reorderStoryPlanScenes(
+        getRepositories(),
+        getMasterGuildId(),
+        adventureId,
+        storyPlanId,
+        sceneIds,
       );
     },
   },

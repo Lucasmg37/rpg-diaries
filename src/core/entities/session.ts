@@ -2,6 +2,8 @@ import type { SessionParticipant } from "./session-participant";
 
 /** Entrada da linha do tempo de uma sessão. */
 export interface TimelineEntry {
+  /** Id local, estável, usado para editar/remover/reordenar a entrada via MCP. */
+  id: string;
   title: string;
   body: string;
   icon: string;

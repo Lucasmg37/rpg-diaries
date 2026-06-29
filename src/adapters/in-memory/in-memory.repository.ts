@@ -26,11 +26,14 @@ import type { CreateNpcInput, Npc, NpcRepositoryPatch } from "@/core/entities/np
 import type {
   CreateSessionInput,
   Session,
+  TimelineEntry,
   UpdateSessionInput,
 } from "@/core/entities/session";
+import type { SessionParticipant } from "@/core/entities/session-participant";
 import type {
   CreateStoryNoteInput,
   CreateStoryPlanInput,
+  Scene,
   StoryNote,
   StoryPlan,
   UpdateStoryPlanInput,
@@ -168,6 +171,112 @@ class InMemorySessionRepository implements SessionRepository {
     const existing = this.store.sessions.get(id);
     if (!existing) throw new NotFoundError(`Sessão "${id}" não encontrada.`);
     const updated: Session = { ...existing, ...patch, updatedAt: new Date() };
+    this.store.sessions.set(id, updated);
+    return updated;
+  }
+
+  async upsertTimelineEntry(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    entry: TimelineEntry,
+    position?: number,
+  ): Promise<Session> {
+    const existing = this.store.sessions.get(id);
+    if (!existing) throw new NotFoundError(`Sessão "${id}" não encontrada.`);
+
+    const existingIndex = existing.timeline.findIndex((e) => e.id === entry.id);
+    const timeline = [...existing.timeline];
+    if (existingIndex >= 0) {
+      timeline.splice(existingIndex, 1);
+      const insertAt =
+        position === undefined
+          ? existingIndex
+          : clampIndex(position, timeline.length);
+      timeline.splice(insertAt, 0, entry);
+    } else {
+      const insertAt = clampIndex(position ?? timeline.length, timeline.length);
+      timeline.splice(insertAt, 0, entry);
+    }
+
+    const updated: Session = { ...existing, timeline, updatedAt: new Date() };
+    this.store.sessions.set(id, updated);
+    return updated;
+  }
+
+  async removeTimelineEntry(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    entryId: string,
+  ): Promise<Session> {
+    const existing = this.store.sessions.get(id);
+    if (!existing) throw new NotFoundError(`Sessão "${id}" não encontrada.`);
+
+    const timeline = existing.timeline.filter((e) => e.id !== entryId);
+    const updated: Session = { ...existing, timeline, updatedAt: new Date() };
+    this.store.sessions.set(id, updated);
+    return updated;
+  }
+
+  async reorderTimelineEntries(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    entryIds: string[],
+  ): Promise<Session> {
+    const existing = this.store.sessions.get(id);
+    if (!existing) throw new NotFoundError(`Sessão "${id}" não encontrada.`);
+
+    const byId = new Map(existing.timeline.map((e) => [e.id, e]));
+    const reordered = entryIds
+      .map((entryId) => byId.get(entryId))
+      .filter((e): e is TimelineEntry => Boolean(e));
+    const remaining = existing.timeline.filter((e) => !entryIds.includes(e.id));
+    const timeline = [...reordered, ...remaining];
+
+    const updated: Session = { ...existing, timeline, updatedAt: new Date() };
+    this.store.sessions.set(id, updated);
+    return updated;
+  }
+
+  async upsertParticipant(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    participant: SessionParticipant,
+  ): Promise<Session> {
+    const existing = this.store.sessions.get(id);
+    if (!existing) throw new NotFoundError(`Sessão "${id}" não encontrada.`);
+
+    const existingIndex = existing.participants.findIndex(
+      (p) => p.adventurerId === participant.adventurerId,
+    );
+    const participants = [...existing.participants];
+    if (existingIndex >= 0) {
+      participants[existingIndex] = participant;
+    } else {
+      participants.push(participant);
+    }
+
+    const updated: Session = { ...existing, participants, updatedAt: new Date() };
+    this.store.sessions.set(id, updated);
+    return updated;
+  }
+
+  async removeParticipant(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    adventurerId: string,
+  ): Promise<Session> {
+    const existing = this.store.sessions.get(id);
+    if (!existing) throw new NotFoundError(`Sessão "${id}" não encontrada.`);
+
+    const participants = existing.participants.filter(
+      (p) => p.adventurerId !== adventurerId,
+    );
+    const updated: Session = { ...existing, participants, updatedAt: new Date() };
     this.store.sessions.set(id, updated);
     return updated;
   }
@@ -420,6 +529,71 @@ class InMemoryStoryPlanRepository implements StoryPlanRepository {
     return updated;
   }
 
+  async upsertScene(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    scene: Scene,
+    position?: number,
+  ): Promise<StoryPlan> {
+    const existing = this.store.storyPlans.get(id);
+    if (!existing) throw new NotFoundError(`Roteiro "${id}" não encontrado.`);
+
+    const existingIndex = existing.scenes.findIndex((s) => s.id === scene.id);
+    const scenes = [...existing.scenes];
+    if (existingIndex >= 0) {
+      scenes.splice(existingIndex, 1);
+      const insertAt =
+        position === undefined
+          ? existingIndex
+          : clampIndex(position, scenes.length);
+      scenes.splice(insertAt, 0, scene);
+    } else {
+      const insertAt = clampIndex(position ?? scenes.length, scenes.length);
+      scenes.splice(insertAt, 0, scene);
+    }
+
+    const updated: StoryPlan = { ...existing, scenes, updatedAt: new Date() };
+    this.store.storyPlans.set(id, updated);
+    return updated;
+  }
+
+  async removeScene(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    sceneId: string,
+  ): Promise<StoryPlan> {
+    const existing = this.store.storyPlans.get(id);
+    if (!existing) throw new NotFoundError(`Roteiro "${id}" não encontrado.`);
+
+    const scenes = existing.scenes.filter((s) => s.id !== sceneId);
+    const updated: StoryPlan = { ...existing, scenes, updatedAt: new Date() };
+    this.store.storyPlans.set(id, updated);
+    return updated;
+  }
+
+  async reorderScenes(
+    _guildId: string,
+    _adventureId: string,
+    id: string,
+    sceneIds: string[],
+  ): Promise<StoryPlan> {
+    const existing = this.store.storyPlans.get(id);
+    if (!existing) throw new NotFoundError(`Roteiro "${id}" não encontrado.`);
+
+    const byId = new Map(existing.scenes.map((s) => [s.id, s]));
+    const reordered = sceneIds
+      .map((sceneId) => byId.get(sceneId))
+      .filter((s): s is Scene => Boolean(s));
+    const remaining = existing.scenes.filter((s) => !sceneIds.includes(s.id));
+    const scenes = [...reordered, ...remaining];
+
+    const updated: StoryPlan = { ...existing, scenes, updatedAt: new Date() };
+    this.store.storyPlans.set(id, updated);
+    return updated;
+  }
+
   async delete(
     _guildId: string,
     _adventureId: string,
@@ -429,6 +603,11 @@ class InMemoryStoryPlanRepository implements StoryPlanRepository {
       throw new NotFoundError(`Roteiro "${id}" não encontrado.`);
     }
   }
+}
+
+/** Garante que o índice de inserção fique dentro de [0, length]. */
+function clampIndex(index: number, length: number): number {
+  return Math.max(0, Math.min(index, length));
 }
 
 class InMemoryNpcRepository implements NpcRepository {

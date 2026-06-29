@@ -309,16 +309,19 @@ export const sampleSessions: Session[] = [
       "A primeira vitória, a condecoração e a invocação descontrolada que mudou tudo.",
     timeline: [
       {
+        id: "tl-1",
         icon: "🏆",
         title: "Batismo de Sangue — a Primeira Vitória",
         body: "O grupo enfrentou o boss do seu primeiro desafio coletivo. A batalha foi dura — três membros caíram durante o confronto. Valerius permaneceu de pé e aplicou o golpe final, encerrando o combate.",
       },
       {
+        id: "tl-2",
         icon: "📜",
         title: "Descanso, Relatório e Ascensão de Nível",
         body: "Após o descanso, reportaram a missão. Todos subiram de nível. Passeio pela cidade, compra de equipamentos e aprendizado de magias na biblioteca. Gutsen emprestou dinheiro a Valerius.",
       },
       {
+        id: "tl-3",
         icon: "🏅",
         title: "Condecoração — Aventureiros da Guilda",
         body: "Uma elfa na guilda os direcionou ao Mestre de Forja. Foram formalmente condecorados: receberam um pergaminho com autorização para missões e um broche com o seu nível. Nyxx se ausentou durante a cerimônia.",
@@ -326,11 +329,13 @@ export const sampleSessions: Session[] = [
           "Quando questionado, Nyxx disse que foi à biblioteca... o grupo ficou com cerca de 10% de dúvida. Ele relatou ter raptado uma mulher que reconheceu como conhecedora do antigo dono do grimório.",
       },
       {
+        id: "tl-4",
         icon: "⚖️",
         title: "Escolha da Missão — sem Nyxx",
         body: "Analisaram o quadro enquanto Nyxx buscava o seu broche. Debateram entre missões fáceis ou de maior retorno. Decidiram — sem a opinião dele — por uma missão mediana com retorno imediato.",
       },
       {
+        id: "tl-5",
         icon: "💥",
         title: "Missão no Portão — o Desastre",
         body: "Fiscalizavam o portão da muralha. O Sargento Elias os levou a um casebre com dois guardas sem uniforme — entraram mesmo desconfiando. Dentro: meia dúzia de traficantes. Elias tentou subornar, falhou na intimidação. Briga frenética. Os bandidos foram vencidos até que o chefe apareceu.",
@@ -338,6 +343,7 @@ export const sampleSessions: Session[] = [
           "Nyxx, do lado de fora, usou todo o seu mana para invocar uma criatura de nível colossal. Com um soco, destruiu o casebre inteiro. O chefe morreu. Os aventureiros ficaram inconscientes. Nyxx os resgatou com a invocação e fingiu estar desacordado.",
       },
       {
+        id: "tl-6",
         icon: "🏛️",
         title: "Interrogatório na Guilda",
         body: "Chamados pelo Chefe da Guilda. A guilda os olhava com desconfiança. A elfa que os ajudara se afastou. Disseram que um dos bandidos foi o responsável pela invocação. Com carisma, a mentira passou. Sem recompensa pela morte de Elias.",
@@ -389,37 +395,44 @@ export const sampleSessions: Session[] = [
       "Três missões completadas, uma morte permanente e a chegada de Kael Draven.",
     timeline: [
       {
+        id: "tl-7",
         icon: "📋",
         title: "O Quadro de Missões",
         body: "Dois avisos chamaram atenção: um procura-se anônimo por um mago de nível 15, e um desaparecimento na biblioteca. O grupo trocou olhares desconfiados, mas escolheu outro caminho: uma missão de maior retorno — 400 de recompensa para escoltar uma mineradora.",
       },
       {
+        id: "tl-8",
         icon: "🗺️",
         title: "O Mapa Roubado",
         body: "No escritório da empresa, Zephyron furtou um mapa sem ser notado — nem mesmo pelos companheiros.",
       },
       {
+        id: "tl-9",
         icon: "🧟",
         title: "As Máquinas Despertam os Mortos",
         body: "Ao ligar as máquinas, uma horda de zumbis surgiu — não uma vez, mas em três ondas. Onda 1: derrotada. Onda 2: Zephyron cai. Onda 3: defesa total do maquinário.",
       },
       {
+        id: "tl-10",
         icon: "💔",
         title: "A Queda de Zephyron",
         body: "Na segunda onda, Zephyron caiu sangrando. Tentaram estancar sem sucesso. Valerius lançou a sua arma contra a horda — errou, e a arma ficou perdida no campo.",
       },
       {
+        id: "tl-11",
         icon: "🙏",
         title: "O Pedido Negado",
         body: "Nyxx pediu à deusa Tenebra poder para controlar os zumbis.",
         callout: 'Do céu, veio apenas uma resposta: "Você é fraco".',
       },
       {
+        id: "tl-12",
         icon: "🛡️",
         title: "Mudança de Estratégia",
         body: "Antes de a segunda onda ser vencida, a terceira já surgia. O grupo abandonou o ataque e se uniu para proteger o maquinário. A mineradora terminou o trabalho segundos antes de os zumbis alcançarem a base.",
       },
       {
+        id: "tl-13",
         icon: "⚰️",
         title: "A Perda",
         body: "Entraram na carroça com Zephyron já caído. As armas de Valerius ficaram para trás. Zephyron não resistiu aos ferimentos e morreu no caminho de volta.",
@@ -427,16 +440,19 @@ export const sampleSessions: Session[] = [
           "Mesmo renegado pelo próprio pai, Zephyron recebeu dos companheiros um enterro digno. A missão foi concluída com sucesso.",
       },
       {
+        id: "tl-14",
         icon: "🆕",
         title: "Um Novo Aliado — Kael Draven",
         body: 'Buscando um substituto, o grupo foi abordado por um estranho ousado que criticou a falta de curador e os chamou de "fracos". Topou se juntar por uma parcela da recompensa. Kael Draven, clérigo healer, assume o lugar de Zephyron.',
       },
       {
+        id: "tl-15",
         icon: "🛒",
         title: "Mercado e Taverna",
         body: "Compraram novas armas. Nyxx, em um momento bizarro, pediu sangue à guilda — e logo depois gritou que não precisava dele.",
       },
       {
+        id: "tl-16",
         icon: "⛏️",
         title: "A Câmara das Estátuas",
         body: "Missão: analisar uma câmara nas minas. Nível 3, 500 de recompensa. Uma porta dourada ao fundo, guardada por duas estátuas que despertaram quando se aproximaram.",
@@ -444,6 +460,7 @@ export const sampleSessions: Session[] = [
           "Kael Draven foi essencial — as suas curas mantiveram o grupo de pé. As estátuas caíram sem nenhuma baixa. Mas foram dispensados sem chance de investigar a porta dourada.",
       },
       {
+        id: "tl-17",
         icon: "📚",
         title: "De Volta à Taberna",
         body: "Escolheram a próxima missão: o desaparecimento na biblioteca. Ao ouvir o nome, Nyxx ficou visivelmente apreensivo.",

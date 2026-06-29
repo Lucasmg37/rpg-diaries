@@ -21,8 +21,10 @@ import type {
 import type { CreateNpcEventInput } from "@/core/entities/npc-event";
 import type {
   CreateSessionInput,
+  TimelineEntry,
   UpdateSessionInput,
 } from "@/core/entities/session";
+import type { SessionParticipant } from "@/core/entities/session-participant";
 import type {
   CreateStoryNoteInput,
   CreateStoryPlanInput,
@@ -73,6 +75,41 @@ export function buildAdventurePatch(
   return p;
 }
 
+/** Normaliza uma única entrada de timeline (gera id a partir de `fallbackIndex` se faltar). */
+export function normalizeTimelineEntry(
+  raw: any,
+  fallbackIndex = 0,
+): TimelineEntry {
+  return {
+    id: raw.id ? String(raw.id) : `entrada-${fallbackIndex + 1}`,
+    title: String(raw.title ?? ""),
+    body: String(raw.body ?? ""),
+    icon: String(raw.icon ?? ""),
+    callout: raw.callout ? String(raw.callout) : undefined,
+  };
+}
+
+/** Garante que cada entrada de timeline tenha id (gera um a partir do índice se faltar). */
+function normalizeTimeline(raw: any): TimelineEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((e: any, i: number) => normalizeTimelineEntry(e, i));
+}
+
+/** Normaliza um único participante embutido na sessão (chave: `adventurerId`). */
+export function normalizeParticipant(raw: any): SessionParticipant {
+  return {
+    adventurerId: String(raw.adventurerId ?? ""),
+    sessionBadge: String(raw.sessionBadge ?? ""),
+    sessionState: raw.sessionState ? String(raw.sessionState) as SessionParticipant["sessionState"] : undefined,
+    sessionNote: raw.sessionNote ? String(raw.sessionNote) : undefined,
+  };
+}
+
+function normalizeParticipants(raw: any): SessionParticipant[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((p: any) => normalizeParticipant(p));
+}
+
 export function buildSessionInput(
   body: Record<string, any>,
   guildId: string,
@@ -84,10 +121,10 @@ export function buildSessionInput(
     number: Number(body.number ?? 0),
     icon: String(body.icon ?? ""),
     summary: String(body.summary ?? ""),
-    timeline: Array.isArray(body.timeline) ? body.timeline : [],
+    timeline: normalizeTimeline(body.timeline),
     tags: Array.isArray(body.tags) ? body.tags : [],
     masterNotes: String(body.masterNotes ?? ""),
-    participants: Array.isArray(body.participants) ? body.participants : [],
+    participants: normalizeParticipants(body.participants),
     looseEndIds: Array.isArray(body.looseEndIds) ? body.looseEndIds : [],
     npcIds: Array.isArray(body.npcIds) ? body.npcIds.map(String) : undefined,
     closing:
@@ -114,9 +151,10 @@ export function buildSessionPatch(
   if ("icon" in args) p.icon = String(args.icon);
   if ("summary" in args) p.summary = String(args.summary);
   if ("masterNotes" in args) p.masterNotes = String(args.masterNotes);
-  if (Array.isArray(args.timeline)) p.timeline = args.timeline;
+  if (Array.isArray(args.timeline)) p.timeline = normalizeTimeline(args.timeline);
   if (Array.isArray(args.tags)) p.tags = args.tags;
-  if (Array.isArray(args.participants)) p.participants = args.participants;
+  if (Array.isArray(args.participants))
+    p.participants = normalizeParticipants(args.participants);
   if (Array.isArray(args.looseEndIds)) p.looseEndIds = args.looseEndIds;
   if (Array.isArray(args.npcIds)) p.npcIds = args.npcIds.map(String);
   if ("closing" in args) {
@@ -238,17 +276,22 @@ function normalizeLoreBanner(raw: any): LoreBanner | undefined {
   };
 }
 
+/** Normaliza uma única cena (gera id a partir de `fallbackIndex` se faltar). */
+export function normalizeScene(raw: any, fallbackIndex = 0): Scene {
+  return {
+    id: raw.id ? String(raw.id) : `cena-${fallbackIndex + 1}`,
+    icon: String(raw.icon ?? ""),
+    title: String(raw.title ?? ""),
+    meta: String(raw.meta ?? ""),
+    blocks: Array.isArray(raw.blocks) ? raw.blocks : [],
+    npcIds: Array.isArray(raw.npcIds) ? raw.npcIds.map(String) : undefined,
+  };
+}
+
 /** Garante que cada cena tenha id (gera um a partir do índice se faltar). */
 function normalizeScenes(raw: any): Scene[] {
   if (!Array.isArray(raw)) return [];
-  return raw.map((s: any, i: number) => ({
-    id: s.id ? String(s.id) : `cena-${i + 1}`,
-    icon: String(s.icon ?? ""),
-    title: String(s.title ?? ""),
-    meta: String(s.meta ?? ""),
-    blocks: Array.isArray(s.blocks) ? s.blocks : [],
-    npcIds: Array.isArray(s.npcIds) ? s.npcIds.map(String) : undefined,
-  }));
+  return raw.map((s: any, i: number) => normalizeScene(s, i));
 }
 
 export function buildStoryPlanInput(
