@@ -4,7 +4,8 @@ import { Callout, Eyebrow, Ornament, Panel, Pill } from "@/components/ui";
 import { colors } from "@/components/ui/tokens";
 import type { Npc } from "@/core/entities/npc";
 import type { Scene, SceneBlock, StoryPlan } from "@/core/entities/story-plan";
-import { npcKindLabel, npcStatusLabel } from "@/lib/npc-view";
+
+import { NpcPillButton } from "./NpcPillButton";
 
 function renderBlock(block: SceneBlock, key: number) {
   switch (block.type) {
@@ -60,13 +61,11 @@ function SceneNpcs({ npcs }: { npcs: Npc[] }) {
   return (
     <div className="flex flex-wrap gap-2 pl-12">
       {npcs.map((npc) => (
-        <Pill
+        <NpcPillButton
           key={npc.id}
+          npc={npc}
           color={npc.kind === "boss" ? colors.red : colors.goldsoft}
-          icon={npc.icon ?? (npc.kind === "boss" ? "👹" : "🧙")}
-        >
-          {npc.name} · {npcKindLabel(npc)} · {npcStatusLabel(npc)}
-        </Pill>
+        />
       ))}
     </div>
   );
