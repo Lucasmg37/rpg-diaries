@@ -119,6 +119,7 @@ export function AdventurerDetail({ adventurerId }: { adventurerId: string }) {
             {adventurer.snapshot.inventory.map((item) => (
               <Pill key={item.id} color={colors.purple} icon="🎒">
                 {item.name}
+                {item.quantity && item.quantity > 1 ? ` ×${item.quantity}` : ""}
               </Pill>
             ))}
           </div>

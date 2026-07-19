@@ -126,6 +126,7 @@ export function NpcDetail({
             {npc.snapshot.inventory.map((item) => (
               <Pill key={item.id} color={colors.purple} icon="🎒">
                 {item.name}
+                {item.quantity && item.quantity > 1 ? ` ×${item.quantity}` : ""}
               </Pill>
             ))}
             <Pill color={colors.muted} icon="👁️">

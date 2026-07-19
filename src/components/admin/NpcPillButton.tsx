@@ -26,7 +26,12 @@ export function NpcPillButton({ npc, color }: { npc: Npc; color: string }) {
         </Pill>
       </button>
 
-      <NpcDetailModal npc={npc} open={open} onClose={() => setOpen(false)} />
+      <NpcDetailModal
+        npc={npc}
+        open={open}
+        onClose={() => setOpen(false)}
+        showInventory
+      />
     </>
   );
 }

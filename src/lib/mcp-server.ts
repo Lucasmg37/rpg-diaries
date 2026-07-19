@@ -1105,7 +1105,7 @@ const TOOLS: ToolDef[] = [
       },
       required: ["adventureId", "type", "actorId", "title"],
       description:
-        "Campos extras variam por `type` — ex.: level_up exige className/fromLevel/toLevel; item_gained exige item {id,name}; relationship exige nature; title_badge exige granted. Veja AdventurerEvent em core/entities/adventurer-event.ts.",
+        "Campos extras variam por `type` — ex.: level_up exige className/fromLevel/toLevel; item_gained exige item {id,name}, quantity opcional (padrão 1, para pilhas como poções); relationship exige nature; title_badge exige granted. Veja AdventurerEvent em core/entities/adventurer-event.ts.",
     },
     requiresAuth: true,
     run: async (args) => {
@@ -1716,7 +1716,7 @@ const TOOLS: ToolDef[] = [
       },
       required: ["adventureId", "npcId", "type", "title"],
       description:
-        "Campos extras variam por `type` — ex.: status_change exige from/to; appearance exige sessionId/seenByAdventurerIds; item_gained exige item {id,name}; relationship exige nature. Veja NpcEvent em core/entities/npc-event.ts.",
+        "Campos extras variam por `type` — ex.: status_change exige from/to; appearance exige sessionId/seenByAdventurerIds; item_gained exige item {id,name}, quantity opcional (padrão 1, para pilhas como poções); relationship exige nature. Veja NpcEvent em core/entities/npc-event.ts.",
     },
     requiresAuth: true,
     run: async (args) => {

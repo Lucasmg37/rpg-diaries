@@ -17,13 +17,17 @@ import {
 export function NpcSheetContent({
   npc,
   panelled = true,
+  showInventory = false,
 }: {
   npc: Npc;
   /** Envolve cada seção em `.panel` — desligue quando já dentro de um Modal/Panel. */
   panelled?: boolean;
+  /** Mostra os itens do inventário (snapshot) — só em telas de mestre/admin. */
+  showInventory?: boolean;
 }) {
   const isDead = isNpcDead(npc);
   const stats = npc.stats;
+  const inventory = npc.snapshot?.inventory ?? [];
 
   return (
     <div className="space-y-6">
@@ -49,6 +53,17 @@ export function NpcSheetContent({
         <p className="mx-auto max-w-2xl border-t border-guild-border pt-4 text-sm leading-relaxed text-guild-muted">
           {npc.description}
         </p>
+
+        {showInventory && inventory.length > 0 ? (
+          <div className="flex flex-wrap justify-center gap-2 border-t border-guild-border pt-4">
+            {inventory.map((item) => (
+              <Pill key={item.id} color={colors.purple} icon="🎒">
+                {item.name}
+                {item.quantity && item.quantity > 1 ? ` ×${item.quantity}` : ""}
+              </Pill>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       {stats ? (

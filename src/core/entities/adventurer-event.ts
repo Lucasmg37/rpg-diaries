@@ -53,6 +53,8 @@ export interface InventoryItem {
   icon?: string;
   rarity?: string;
   note?: string;
+  /** Quantidade na pilha (ex.: 3 Poções de Ácido). Ausente/1 = item único. */
+  quantity?: number;
 }
 
 export type AdventurerStatus = "active" | "dead" | "missing" | "retired";

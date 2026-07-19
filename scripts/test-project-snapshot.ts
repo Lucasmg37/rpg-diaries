@@ -139,4 +139,26 @@ const lostItem = projectSnapshot([
 ]);
 assertEqual(lostItem.inventory, [], "item_lost remove do inventário");
 
+// item_gained com quantity preserva a pilha no snapshot
+const stackedItem = projectSnapshot([
+  ...events,
+  {
+    ...base,
+    id: "e9",
+    type: "item_gained",
+    actorId: "adv-1",
+    occurredAt: "2026-01-09T00:00:00.000Z",
+    title: "Achou poções",
+    item: { id: "item-2", name: "Poção de Ácido", quantity: 3 },
+  },
+]);
+assertEqual(
+  stackedItem.inventory,
+  [
+    { id: "item-1", name: "Espada" },
+    { id: "item-2", name: "Poção de Ácido", quantity: 3 },
+  ],
+  "item_gained com quantity preserva a pilha no inventário",
+);
+
 console.log("\n✅ Todos os testes de projectSnapshot passaram.");

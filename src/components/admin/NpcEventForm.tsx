@@ -35,6 +35,7 @@ const EMPTY_EXTRA = {
   cause: "",
   itemId: "",
   itemName: "",
+  itemQuantity: 1,
   itemReason: "",
   nature: "alliance" as "alliance" | "conflict" | "bond" | "betrayal",
   seenByAdventurerIds: [] as string[],
@@ -121,7 +122,11 @@ export function NpcEventForm({
         payload.seenByAdventurerIds = extra.seenByAdventurerIds;
         break;
       case "item_gained":
-        payload.item = { id: extra.itemId || extra.itemName, name: extra.itemName };
+        payload.item = {
+          id: extra.itemId || extra.itemName,
+          name: extra.itemName,
+          quantity: extra.itemQuantity > 1 ? extra.itemQuantity : undefined,
+        };
         break;
       case "item_lost":
         payload.itemId = extra.itemId;
@@ -261,12 +266,21 @@ export function NpcEventForm({
         )}
 
         {type === "item_gained" && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <Field
               id="npc-ev-item-name"
               label="Nome do item"
               value={extra.itemName}
               onChange={(e) => setExtra({ ...extra, itemName: e.target.value })}
+            />
+            <Field
+              id="npc-ev-item-quantity"
+              label="Quantidade"
+              type="number"
+              value={extra.itemQuantity}
+              onChange={(e) =>
+                setExtra({ ...extra, itemQuantity: Number(e.target.value) })
+              }
             />
             <Field
               id="npc-ev-item-id"
